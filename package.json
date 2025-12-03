@@ -1,0 +1,55 @@
+{
+  "name": "evomni-electron",
+  "version": "0.1.0",
+  "main": "electron/main.js",
+  "private": true,
+  "homepage": "https://frankhewitt.github.io/v1.20251015",
+  "engines": {
+    "node": ">=20.19"
+  },
+  "scripts": {
+    "react-dev": "vite",
+    "dev:all": "node ./scripts/dev-all.js",
+    "dev": "node ./scripts/dev-all.js",
+    "build": "vite build",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build",
+    "electron:prod": "cross-env NODE_ENV=production electron .",
+    "start:prod": "npm run build && npm run electron:prod",
+    "preview": "vite preview --port 5173",
+    "dev:api": "cd mock-api-dotnet && EVOMNI_DEV=1 dotnet run",
+    "electron:dev": "cross-env NODE_ENV=development electron .",
+    "start": "node ./scripts/dev-all.js"
+  },
+  "dependencies": {
+    "@emotion/cache": "^11.14.0",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^5.14.0",
+    "@mui/material": "^5.14.0",
+    "@mui/x-data-grid": "^6.4.0",
+    "@mui/x-tree-view": "^8.17.0",
+    "@reduxjs/toolkit": "^1.9.5",
+    "axios": "^1.4.0",
+    "formik": "^2.4.9",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-redux": "^8.0.5",
+    "react-router-dom": "^6.11.0",
+    "yup": "^1.7.1"
+  },
+  "devDependencies": {
+    "@mui/x-charts": "^8.14.1",
+    "@mui/x-date-pickers": "^6.0.0",
+    "@vitejs/plugin-react": "^4.0.0",
+    "concurrently": "^9.2.1",
+    "cross-env": "^7.0.3",
+    "date-fns": "^2.30.0",
+    "electron": "^25.2.0",
+    "electron-reload": "^1.5.0",
+    "gh-pages": "^6.3.0",
+    "typescript": "^5.5.6",
+    "vite": "^5.2.0",
+    "wait-on": "^9.0.1"
+  }
+}
