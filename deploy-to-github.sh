@@ -19,7 +19,7 @@ echo ""
 
 # Add remote origin
 echo "📋 Linking to GitHub repository..."
-git remote add origin https://github.com/frankhewitt/evomni-playground.git 2>/dev/null || git remote set-url origin https://github.com/frankhewitt/evomni-playground.git
+git remote add origin https://github.com/hewittfr/evomni-playground.git 2>/dev/null || git remote set-url origin https://github.com/hewittfr/evomni-playground.git
 
 # Push to main branch
 echo ""
@@ -49,8 +49,8 @@ echo ""
 echo "✅ Deployment complete!"
 echo ""
 echo "🎉 Your app should be available at:"
-echo "   https://frankhewitt.github.io/evomni-playground"
+echo "   https://hewittfr.github.io/evomni-playground"
 echo ""
 echo "📝 Note: It may take 1-2 minutes for GitHub Pages to build."
 echo "📝 Check deployment status at:"
-echo "   https://github.com/frankhewitt/evomni-playground/deployments"
+echo "   https://github.com/hewittfr/evomni-playground/deployments"
