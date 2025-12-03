@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  base: '/v1.20251015/',
+  base: '/evomni-playground/',
   server: {
     port: 5173,
     strictPort: false

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "main": "electron/main.js",
   "private": true,
-  "homepage": "https://frankhewitt.github.io/v1.20251015",
+  "homepage": "https://frankhewitt.github.io/evomni-playground",
   "engines": {
     "node": ">=20.19"
   },
