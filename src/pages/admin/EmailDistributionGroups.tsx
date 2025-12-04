@@ -56,8 +56,8 @@ interface DistributionGroup {
 const mockGroups: DistributionGroup[] = [
   {
     id: '1',
-    name: 'Project Managers',
-    key: 'project-managers',
+    name: 'EM Issues Distribution',
+    key: 'em-issues-distribution',
     application: 'EM',
     description: 'All project managers',
     status: 'Active',
@@ -78,8 +78,8 @@ const mockGroups: DistributionGroup[] = [
   },
   {
     id: '2',
-    name: 'Project Leads',
-    key: 'project-leads',
+    name: 'CAP-1 Issues Distribution',
+    key: 'cap-1-issues-distribution',
     application: 'CAP-1',
     description: 'Technical project leads',
     status: 'Active',
@@ -99,8 +99,8 @@ const mockGroups: DistributionGroup[] = [
   },
   {
     id: '3',
-    name: 'Schedulers Team',
-    key: 'schedulers-team',
+    name: 'CAP-2 Issues Distribution',
+    key: 'cap2-issues-distribution',
     application: 'CAP-2',
     description: 'Project scheduling team',
     status: 'Active',
@@ -120,8 +120,8 @@ const mockGroups: DistributionGroup[] = [
   },
   {
     id: '4',
-    name: 'Executive Team',
-    key: 'executive-team',
+    name: 'X-326 Managers Issues Distribution',
+    key: 'x326-managers-issues-distribution',
     application: 'X-326',
     description: 'Executive management',
     status: 'Inactive',
@@ -356,9 +356,9 @@ const EmailDistributionGroups: React.FC = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Avatar 
               sx={{ 
-                width: 28, 
-                height: 28, 
-                fontSize: '0.75rem',
+                width: 24, 
+                height: 24, 
+                fontSize: '0.65rem',
                 borderRadius: 1,
                 bgcolor: 'primary.main'
               }}
@@ -386,7 +386,7 @@ const EmailDistributionGroups: React.FC = () => {
           color = 'warning';
         }
         
-        return <Chip label={type} color={color} size="small" />;
+        return <Chip label={type} color={color} size="small" sx={{ height: 20, fontSize: '0.7rem', '& .MuiChip-label': { px: 1 } }} />;
       }
     },
     {
@@ -475,10 +475,10 @@ const EmailDistributionGroups: React.FC = () => {
                           size="small"
                           sx={{ 
                             ml: 1,
-                            height: 20,
-                            fontSize: '0.7rem',
+                            height: 18,
+                            fontSize: '0.65rem',
                             '& .MuiChip-label': {
-                              px: 1
+                              px: 0.75
                             }
                           }}
                         />
@@ -550,10 +550,18 @@ const EmailDistributionGroups: React.FC = () => {
                     <Grid container spacing={2}>
                       {/* Application */}
                       <Grid item xs={12}>
-                        <FormControl 
-                          size="small" 
+                        <FormControl
+                          size="small"
                           fullWidth
                           error={formik.touched.application && Boolean(formik.errors.application)}
+                          sx={{
+                            '& .MuiInputLabel-root': {
+                              fontSize: '0.75rem'
+                            },
+                            '& .MuiSelect-select': {
+                              fontSize: '0.75rem'
+                            }
+                          }}
                         >
                           <InputLabel id="application-label">Application *</InputLabel>
                           <Select
@@ -563,6 +571,15 @@ const EmailDistributionGroups: React.FC = () => {
                             value={formik.values.application}
                             onChange={handleApplicationChange}
                             onBlur={formik.handleBlur}
+                            MenuProps={{
+                              PaperProps: {
+                                sx: {
+                                  '& .MuiMenuItem-root': {
+                                    fontSize: '0.75rem'
+                                  }
+                                }
+                              }
+                            }}
                           >
                             <MenuItem value=""><em>None</em></MenuItem>
                             <MenuItem value="EM">EM</MenuItem>
@@ -573,7 +590,7 @@ const EmailDistributionGroups: React.FC = () => {
                             <MenuItem value="X-333">X-333</MenuItem>
                           </Select>
                           {formik.touched.application && formik.errors.application && (
-                            <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75, fontSize: '0.75rem' }}>
+                            <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75, fontSize: '0.65rem' }}>
                               {formik.errors.application}
                             </Typography>
                           )}
@@ -593,6 +610,17 @@ const EmailDistributionGroups: React.FC = () => {
                           onBlur={formik.handleBlur}
                           error={formik.touched.name && Boolean(formik.errors.name)}
                           helperText={formik.touched.name && formik.errors.name}
+                          sx={{
+                            '& .MuiInputBase-input': {
+                              fontSize: '0.75rem'
+                            },
+                            '& .MuiInputLabel-root': {
+                              fontSize: '0.75rem'
+                            },
+                            '& .MuiFormHelperText-root': {
+                              fontSize: '0.65rem'
+                            }
+                          }}
                         />
                       </Grid>
 
@@ -610,6 +638,15 @@ const EmailDistributionGroups: React.FC = () => {
                           helperText={formik.touched.key && formik.errors.key}
                           disabled
                           sx={{
+                            '& .MuiInputBase-input': {
+                              fontSize: '0.75rem'
+                            },
+                            '& .MuiInputLabel-root': {
+                              fontSize: '0.75rem'
+                            },
+                            '& .MuiFormHelperText-root': {
+                              fontSize: '0.65rem'
+                            },
                             '& .MuiInputBase-input.Mui-disabled': {
                               WebkitTextFillColor: 'rgba(0, 0, 0, 0.6)'
                             }
@@ -641,7 +678,14 @@ const EmailDistributionGroups: React.FC = () => {
                         },
                         '& .MuiInputBase-input': {
                           height: '100% !important',
-                          overflow: 'auto !important'
+                          overflow: 'auto !important',
+                          fontSize: '0.75rem'
+                        },
+                        '& .MuiInputLabel-root': {
+                          fontSize: '0.75rem'
+                        },
+                        '& .MuiFormHelperText-root': {
+                          fontSize: '0.65rem'
                         }
                       }}
                     />
@@ -746,10 +790,12 @@ const EmailDistributionGroups: React.FC = () => {
                   sx={{
                     border: 'none',
                     '& .MuiDataGrid-cell': {
-                      borderColor: 'divider'
+                      borderColor: 'divider',
+                      fontSize: '0.75rem'
                     },
                     '& .MuiDataGrid-columnHeaders': {
-                      borderColor: 'divider'
+                      borderColor: 'divider',
+                      fontSize: '0.75rem'
                     }
                   }}
                 />
