@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Box, 
   Typography, 
@@ -31,154 +31,7 @@ import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
 import DeleteIcon from '@mui/icons-material/Delete';
-
-// Mock data for datagrids
-const mockDataChecks = [
-  { id: 1, name: 'Budget Validation', runtime: '2.3s', issues: 3 },
-  { id: 2, name: 'Resource Allocation', runtime: '1.8s', issues: 0 },
-  { id: 3, name: 'Timeline Consistency', runtime: '3.1s', issues: 5 },
-  { id: 4, name: 'Cost Analysis', runtime: '2.7s', issues: 2 },
-  { id: 5, name: 'Performance Metrics', runtime: '1.5s', issues: 1 },
-  { id: 6, name: 'Variance Check', runtime: '2.9s', issues: 4 },
-  { id: 7, name: 'Baseline Validation', runtime: '2.2s', issues: 0 },
-  { id: 8, name: 'EAC Calculation', runtime: '3.5s', issues: 2 }
-];
-
-// Mock distribution groups organized by application
-const mockDistributionGroups = [
-  { id: 1, name: 'Project Managers', application: 'EM', memberCount: 12 },
-  { id: 2, name: 'Engineering Team', application: 'EM', memberCount: 8 },
-  { id: 3, name: 'Project Leads', application: 'CAP-1', memberCount: 11 },
-  { id: 4, name: 'Technical Leads', application: 'CAP-1', memberCount: 6 },
-  { id: 5, name: 'Finance Department', application: 'CAP-2', memberCount: 15 },
-  { id: 6, name: 'Budget Analysts', application: 'CAP-2', memberCount: 7 },
-  { id: 7, name: 'Executive Leadership', application: 'CAP-3', memberCount: 5 },
-  { id: 8, name: 'Program Directors', application: 'CAP-3', memberCount: 9 },
-  { id: 9, name: 'Operations Team', application: 'X-326', memberCount: 14 },
-  { id: 10, name: 'Site Managers', application: 'X-326', memberCount: 6 },
-  { id: 11, name: 'Quality Assurance', application: 'X-333', memberCount: 10 },
-  { id: 12, name: 'Compliance Team', application: 'X-333', memberCount: 8 }
-];
-
-// Mock members data matching EmailDistributionGroups structure
-const mockMembers = [
-  // Group 1 - Project Managers (EM)
-  { id: 'm1', lastName: 'Smith', firstName: 'John', memberType: 'Manager', email: 'john.smith@example.com', groupId: 1 },
-  { id: 'm2', lastName: 'Johnson', firstName: 'Sarah', memberType: 'Project Lead', email: 'sarah.johnson@example.com', groupId: 1 },
-  { id: 'm3', lastName: 'Williams', firstName: 'Michael', memberType: 'Scheduler', email: 'michael.williams@example.com', groupId: 1 },
-  { id: 'm4', lastName: 'Brown', firstName: 'Emily', memberType: 'Scheduler', email: 'emily.brown@example.com', groupId: 1 },
-  { id: 'm5', lastName: 'Davis', firstName: 'David', memberType: 'Scheduler', email: 'david.davis@example.com', groupId: 1 },
-  { id: 'm6', lastName: 'Miller', firstName: 'Jennifer', memberType: 'Scheduler', email: 'jennifer.miller@example.com', groupId: 1 },
-  { id: 'm7', lastName: 'Wilson', firstName: 'Robert', memberType: 'Scheduler', email: 'robert.wilson@example.com', groupId: 1 },
-  { id: 'm8', lastName: 'Moore', firstName: 'Linda', memberType: 'Scheduler', email: 'linda.moore@example.com', groupId: 1 },
-  { id: 'm9', lastName: 'Taylor', firstName: 'James', memberType: 'Scheduler', email: 'james.taylor@example.com', groupId: 1 },
-  { id: 'm10', lastName: 'Anderson', firstName: 'Mary', memberType: 'Scheduler', email: 'mary.anderson@example.com', groupId: 1 },
-  { id: 'm11', lastName: 'Thomas', firstName: 'Christopher', memberType: 'Scheduler', email: 'christopher.thomas@example.com', groupId: 1 },
-  { id: 'm12', lastName: 'Jackson', firstName: 'Patricia', memberType: 'Scheduler', email: 'patricia.jackson@example.com', groupId: 1 },
-  
-  // Group 2 - Engineering Team (EM)
-  { id: 'm13', lastName: 'White', firstName: 'Daniel', memberType: 'Manager', email: 'daniel.white@example.com', groupId: 2 },
-  { id: 'm14', lastName: 'Harris', firstName: 'Jessica', memberType: 'Engineer', email: 'jessica.harris@example.com', groupId: 2 },
-  { id: 'm15', lastName: 'Martin', firstName: 'Matthew', memberType: 'Engineer', email: 'matthew.martin@example.com', groupId: 2 },
-  { id: 'm16', lastName: 'Thompson', firstName: 'Ashley', memberType: 'Engineer', email: 'ashley.thompson@example.com', groupId: 2 },
-  { id: 'm17', lastName: 'Garcia', firstName: 'Joshua', memberType: 'Engineer', email: 'joshua.garcia@example.com', groupId: 2 },
-  { id: 'm18', lastName: 'Martinez', firstName: 'Amanda', memberType: 'Engineer', email: 'amanda.martinez@example.com', groupId: 2 },
-  { id: 'm19', lastName: 'Robinson', firstName: 'Andrew', memberType: 'Engineer', email: 'andrew.robinson@example.com', groupId: 2 },
-  { id: 'm20', lastName: 'Clark', firstName: 'Stephanie', memberType: 'Engineer', email: 'stephanie.clark@example.com', groupId: 2 },
-  
-  // Group 3 - Project Leads (CAP-1)
-  { id: 'm21', lastName: 'Rodriguez', firstName: 'Kevin', memberType: 'Manager', email: 'kevin.rodriguez@example.com', groupId: 3 },
-  { id: 'm22', lastName: 'Lewis', firstName: 'Nicole', memberType: 'Project Lead', email: 'nicole.lewis@example.com', groupId: 3 },
-  { id: 'm23', lastName: 'Lee', firstName: 'Brian', memberType: 'Project Lead', email: 'brian.lee@example.com', groupId: 3 },
-  { id: 'm24', lastName: 'Walker', firstName: 'Michelle', memberType: 'Project Lead', email: 'michelle.walker@example.com', groupId: 3 },
-  { id: 'm25', lastName: 'Hall', firstName: 'Ryan', memberType: 'Project Lead', email: 'ryan.hall@example.com', groupId: 3 },
-  { id: 'm26', lastName: 'Allen', firstName: 'Lauren', memberType: 'Project Lead', email: 'lauren.allen@example.com', groupId: 3 },
-  { id: 'm27', lastName: 'Young', firstName: 'Jason', memberType: 'Project Lead', email: 'jason.young@example.com', groupId: 3 },
-  { id: 'm28', lastName: 'King', firstName: 'Rebecca', memberType: 'Project Lead', email: 'rebecca.king@example.com', groupId: 3 },
-  { id: 'm29', lastName: 'Wright', firstName: 'Eric', memberType: 'Project Lead', email: 'eric.wright@example.com', groupId: 3 },
-  { id: 'm30', lastName: 'Scott', firstName: 'Megan', memberType: 'Project Lead', email: 'megan.scott@example.com', groupId: 3 },
-  { id: 'm31', lastName: 'Green', firstName: 'Justin', memberType: 'Project Lead', email: 'justin.green@example.com', groupId: 3 },
-  
-  // Group 4 - Technical Leads (CAP-1)
-  { id: 'm32', lastName: 'Adams', firstName: 'Rachel', memberType: 'Manager', email: 'rachel.adams@example.com', groupId: 4 },
-  { id: 'm33', lastName: 'Baker', firstName: 'Tyler', memberType: 'Technical Lead', email: 'tyler.baker@example.com', groupId: 4 },
-  { id: 'm34', lastName: 'Nelson', firstName: 'Samantha', memberType: 'Technical Lead', email: 'samantha.nelson@example.com', groupId: 4 },
-  { id: 'm35', lastName: 'Carter', firstName: 'Brandon', memberType: 'Technical Lead', email: 'brandon.carter@example.com', groupId: 4 },
-  { id: 'm36', lastName: 'Mitchell', firstName: 'Katherine', memberType: 'Technical Lead', email: 'katherine.mitchell@example.com', groupId: 4 },
-  { id: 'm37', lastName: 'Perez', firstName: 'Dylan', memberType: 'Technical Lead', email: 'dylan.perez@example.com', groupId: 4 },
-  
-  // Group 5 - Finance Department (CAP-2)
-  { id: 'm38', lastName: 'Roberts', firstName: 'Olivia', memberType: 'Manager', email: 'olivia.roberts@example.com', groupId: 5 },
-  { id: 'm39', lastName: 'Turner', firstName: 'Nathan', memberType: 'Analyst', email: 'nathan.turner@example.com', groupId: 5 },
-  { id: 'm40', lastName: 'Phillips', firstName: 'Hannah', memberType: 'Analyst', email: 'hannah.phillips@example.com', groupId: 5 },
-  { id: 'm41', lastName: 'Campbell', firstName: 'Zachary', memberType: 'Analyst', email: 'zachary.campbell@example.com', groupId: 5 },
-  { id: 'm42', lastName: 'Parker', firstName: 'Emma', memberType: 'Analyst', email: 'emma.parker@example.com', groupId: 5 },
-  { id: 'm43', lastName: 'Evans', firstName: 'Alexander', memberType: 'Analyst', email: 'alexander.evans@example.com', groupId: 5 },
-  { id: 'm44', lastName: 'Edwards', firstName: 'Grace', memberType: 'Analyst', email: 'grace.edwards@example.com', groupId: 5 },
-  { id: 'm45', lastName: 'Collins', firstName: 'Ethan', memberType: 'Analyst', email: 'ethan.collins@example.com', groupId: 5 },
-  
-  // Group 6 - Budget Analysts (CAP-2)
-  { id: 'm46', lastName: 'Stewart', firstName: 'Victoria', memberType: 'Manager', email: 'victoria.stewart@example.com', groupId: 6 },
-  { id: 'm47', lastName: 'Morris', firstName: 'Jacob', memberType: 'Budget Analyst', email: 'jacob.morris@example.com', groupId: 6 },
-  { id: 'm48', lastName: 'Rogers', firstName: 'Alexis', memberType: 'Budget Analyst', email: 'alexis.rogers@example.com', groupId: 6 },
-  { id: 'm49', lastName: 'Reed', firstName: 'Connor', memberType: 'Budget Analyst', email: 'connor.reed@example.com', groupId: 6 },
-  { id: 'm50', lastName: 'Cook', firstName: 'Madison', memberType: 'Budget Analyst', email: 'madison.cook@example.com', groupId: 6 },
-  { id: 'm51', lastName: 'Morgan', firstName: 'Lucas', memberType: 'Budget Analyst', email: 'lucas.morgan@example.com', groupId: 6 },
-  { id: 'm52', lastName: 'Bell', firstName: 'Sophia', memberType: 'Budget Analyst', email: 'sophia.bell@example.com', groupId: 6 },
-  
-  // Group 7 - Executive Leadership (CAP-3)
-  { id: 'm53', lastName: 'Murphy', firstName: 'Benjamin', memberType: 'Executive', email: 'benjamin.murphy@example.com', groupId: 7 },
-  { id: 'm54', lastName: 'Bailey', firstName: 'Isabella', memberType: 'Executive', email: 'isabella.bailey@example.com', groupId: 7 },
-  { id: 'm55', lastName: 'Rivera', firstName: 'Noah', memberType: 'Executive', email: 'noah.rivera@example.com', groupId: 7 },
-  { id: 'm56', lastName: 'Cooper', firstName: 'Ava', memberType: 'Executive', email: 'ava.cooper@example.com', groupId: 7 },
-  { id: 'm57', lastName: 'Richardson', firstName: 'Mason', memberType: 'Executive', email: 'mason.richardson@example.com', groupId: 7 },
-  
-  // Group 8 - Program Directors (CAP-3)
-  { id: 'm58', lastName: 'Cox', firstName: 'Lily', memberType: 'Manager', email: 'lily.cox@example.com', groupId: 8 },
-  { id: 'm59', lastName: 'Howard', firstName: 'Logan', memberType: 'Director', email: 'logan.howard@example.com', groupId: 8 },
-  { id: 'm60', lastName: 'Ward', firstName: 'Chloe', memberType: 'Director', email: 'chloe.ward@example.com', groupId: 8 },
-  { id: 'm61', lastName: 'Torres', firstName: 'Carter', memberType: 'Director', email: 'carter.torres@example.com', groupId: 8 },
-  { id: 'm62', lastName: 'Peterson', firstName: 'Zoe', memberType: 'Director', email: 'zoe.peterson@example.com', groupId: 8 },
-  { id: 'm63', lastName: 'Gray', firstName: 'Jackson', memberType: 'Director', email: 'jackson.gray@example.com', groupId: 8 },
-  { id: 'm64', lastName: 'Ramirez', firstName: 'Ella', memberType: 'Director', email: 'ella.ramirez@example.com', groupId: 8 },
-  { id: 'm65', lastName: 'James', firstName: 'Sebastian', memberType: 'Director', email: 'sebastian.james@example.com', groupId: 8 },
-  { id: 'm66', lastName: 'Watson', firstName: 'Aria', memberType: 'Director', email: 'aria.watson@example.com', groupId: 8 },
-  
-  // Group 9 - Operations Team (X-326)
-  { id: 'm67', lastName: 'Brooks', firstName: 'Luke', memberType: 'Manager', email: 'luke.brooks@example.com', groupId: 9 },
-  { id: 'm68', lastName: 'Kelly', firstName: 'Natalie', memberType: 'Operations', email: 'natalie.kelly@example.com', groupId: 9 },
-  { id: 'm69', lastName: 'Sanders', firstName: 'Owen', memberType: 'Operations', email: 'owen.sanders@example.com', groupId: 9 },
-  { id: 'm70', lastName: 'Price', firstName: 'Leah', memberType: 'Operations', email: 'leah.price@example.com', groupId: 9 },
-  { id: 'm71', lastName: 'Bennett', firstName: 'Isaac', memberType: 'Operations', email: 'isaac.bennett@example.com', groupId: 9 },
-  { id: 'm72', lastName: 'Wood', firstName: 'Addison', memberType: 'Operations', email: 'addison.wood@example.com', groupId: 9 },
-  { id: 'm73', lastName: 'Barnes', firstName: 'Gabriel', memberType: 'Operations', email: 'gabriel.barnes@example.com', groupId: 9 },
-  
-  // Group 10 - Site Managers (X-326)
-  { id: 'm74', lastName: 'Ross', firstName: 'Aubrey', memberType: 'Manager', email: 'aubrey.ross@example.com', groupId: 10 },
-  { id: 'm75', lastName: 'Henderson', firstName: 'Wyatt', memberType: 'Site Manager', email: 'wyatt.henderson@example.com', groupId: 10 },
-  { id: 'm76', lastName: 'Coleman', firstName: 'Scarlett', memberType: 'Site Manager', email: 'scarlett.coleman@example.com', groupId: 10 },
-  { id: 'm77', lastName: 'Jenkins', firstName: 'Julian', memberType: 'Site Manager', email: 'julian.jenkins@example.com', groupId: 10 },
-  { id: 'm78', lastName: 'Perry', firstName: 'Penelope', memberType: 'Site Manager', email: 'penelope.perry@example.com', groupId: 10 },
-  { id: 'm79', lastName: 'Powell', firstName: 'Leo', memberType: 'Site Manager', email: 'leo.powell@example.com', groupId: 10 },
-  
-  // Group 11 - Quality Assurance (X-333)
-  { id: 'm80', lastName: 'Long', firstName: 'Layla', memberType: 'Manager', email: 'layla.long@example.com', groupId: 11 },
-  { id: 'm81', lastName: 'Patterson', firstName: 'Levi', memberType: 'QA Analyst', email: 'levi.patterson@example.com', groupId: 11 },
-  { id: 'm82', lastName: 'Hughes', firstName: 'Aurora', memberType: 'QA Analyst', email: 'aurora.hughes@example.com', groupId: 11 },
-  { id: 'm83', lastName: 'Flores', firstName: 'Lincoln', memberType: 'QA Analyst', email: 'lincoln.flores@example.com', groupId: 11 },
-  { id: 'm84', lastName: 'Washington', firstName: 'Nova', memberType: 'QA Analyst', email: 'nova.washington@example.com', groupId: 11 },
-  { id: 'm85', lastName: 'Butler', firstName: 'Henry', memberType: 'QA Analyst', email: 'henry.butler@example.com', groupId: 11 },
-  
-  // Group 12 - Compliance Team (X-333)
-  { id: 'm86', lastName: 'Simmons', firstName: 'Bella', memberType: 'Manager', email: 'bella.simmons@example.com', groupId: 12 },
-  { id: 'm87', lastName: 'Foster', firstName: 'Caleb', memberType: 'Compliance', email: 'caleb.foster@example.com', groupId: 12 },
-  { id: 'm88', lastName: 'Gonzales', firstName: 'Hazel', memberType: 'Compliance', email: 'hazel.gonzales@example.com', groupId: 12 },
-  { id: 'm89', lastName: 'Bryant', firstName: 'Liam', memberType: 'Compliance', email: 'liam.bryant@example.com', groupId: 12 },
-  { id: 'm90', lastName: 'Alexander', firstName: 'Violet', memberType: 'Compliance', email: 'violet.alexander@example.com', groupId: 12 },
-  { id: 'm91', lastName: 'Russell', firstName: 'Elijah', memberType: 'Compliance', email: 'elijah.russell@example.com', groupId: 12 },
-  { id: 'm92', lastName: 'Griffin', firstName: 'Lucy', memberType: 'Compliance', email: 'lucy.griffin@example.com', groupId: 12 },
-  { id: 'm93', lastName: 'Diaz', firstName: 'Oliver', memberType: 'Compliance', email: 'oliver.diaz@example.com', groupId: 12 },
-];
+import dataService from '../services/dataService';
 
 export default function Evms() {
   const [tabValue, setTabValue] = useState(0);
@@ -201,6 +54,33 @@ export default function Evms() {
     selectedMemberIds: (string | number)[];
     selectedDataCheckIds: number[];
   }>>([]);
+
+  // State for loaded data
+  const [dataChecks, setDataChecks] = useState<any[]>([]);
+  const [distributionGroups, setDistributionGroups] = useState<any[]>([]);
+  const [members, setMembers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Load data on component mount
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [checksData, groupsData, membersData] = await Promise.all([
+          dataService.getDataChecks(),
+          dataService.getDistributionGroups(),
+          dataService.getMembers()
+        ]);
+        setDataChecks(checksData);
+        setDistributionGroups(groupsData);
+        setMembers(membersData);
+      } catch (error) {
+        console.error('Failed to load data:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
 
   const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -245,7 +125,7 @@ export default function Evms() {
     
     // Update or create the compiled selection for the current group
     if (selectedDistGroup !== null && (newSelection.length > 0 || selectedDataChecks.length > 0)) {
-      const group = mockDistributionGroups.find(g => g.id === selectedDistGroup);
+      const group = distributionGroups.find(g => g.id === selectedDistGroup);
       if (!group) return;
       
       setCompiledSelections(prev => {
@@ -281,7 +161,7 @@ export default function Evms() {
     
     // Update or create the compiled selection for the current group
     if (selectedDistGroup !== null && (newSelection.length > 0 || selectedMembers.length > 0)) {
-      const group = mockDistributionGroups.find(g => g.id === selectedDistGroup);
+      const group = distributionGroups.find(g => g.id === selectedDistGroup);
       if (!group) return;
       
       setCompiledSelections(prev => {
@@ -335,17 +215,17 @@ export default function Evms() {
 
   // Get members for selected distribution group
   const selectedGroupMembers = selectedDistGroup 
-    ? mockMembers.filter(m => m.groupId === selectedDistGroup)
+    ? members.filter(m => m.groupId === selectedDistGroup)
     : [];
 
   // Get app for selected distribution group
   const selectedGroupApp = selectedDistGroup
-    ? mockDistributionGroups.find(g => g.id === selectedDistGroup)?.application
+    ? distributionGroups.find(g => g.id === selectedDistGroup)?.application
     : null;
 
   // Get name for selected distribution group
   const selectedGroupName = selectedDistGroup
-    ? mockDistributionGroups.find(g => g.id === selectedDistGroup)?.name
+    ? distributionGroups.find(g => g.id === selectedDistGroup)?.name
     : null;
 
   const dataCheckColumns: GridColDef[] = [
@@ -515,7 +395,7 @@ export default function Evms() {
           </Box>
           <Box sx={{ flexGrow: 1 }}>
             <DataGrid
-              rows={mockDataChecks.slice(0, 4)}
+              rows={dataChecks.slice(0, 4)}
               columns={dataCheckColumns}
               checkboxSelection
               disableRowSelectionOnClick
@@ -552,7 +432,7 @@ export default function Evms() {
           </Box>
           <Box sx={{ flexGrow: 1 }}>
             <DataGrid
-              rows={mockDataChecks.slice(4)}
+              rows={dataChecks.slice(4)}
               columns={dataCheckColumns}
               checkboxSelection
               disableRowSelectionOnClick
@@ -631,7 +511,7 @@ export default function Evms() {
                   pb: 2
                 }}>
                 {['EM', 'CAP-1', 'CAP-2', 'CAP-3', 'X-326', 'X-333'].map((app) => {
-                  const groupsForApp = mockDistributionGroups.filter(g => 
+                  const groupsForApp = distributionGroups.filter(g => 
                     g.application === app && 
                     (g.name.toLowerCase().includes(groupSearchText.toLowerCase()) ||
                      g.application.toLowerCase().includes(groupSearchText.toLowerCase()))
@@ -730,7 +610,7 @@ export default function Evms() {
                   <Box sx={{ flexGrow: 1, minHeight: 0, overflow: 'hidden' }}>
                     {selectedDistGroup ? (
                       <DataGrid
-                        rows={mockDataChecks}
+                        rows={dataChecks}
                         columns={dataCheckColumns}
                         checkboxSelection
                         disableRowSelectionOnClick

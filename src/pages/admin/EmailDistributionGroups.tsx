@@ -32,6 +32,7 @@ import GroupIcon from '@mui/icons-material/Group';
 import { DataGrid, GridColDef, GridRowSelectionModel } from '@mui/x-data-grid';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
+import { dataService } from '../../services/dataService';
 
 // Interfaces
 interface DistributionGroupMember {
@@ -52,94 +53,7 @@ interface DistributionGroup {
   members: DistributionGroupMember[];
 }
 
-// Mock data
-const mockGroups: DistributionGroup[] = [
-  {
-    id: '1',
-    name: 'EM Issues Distribution',
-    key: 'em-issues-distribution',
-    application: 'EM',
-    description: 'All project managers',
-    status: 'Active',
-    members: [
-      { id: 'm1', lastName: 'Smith', firstName: 'John', memberType: 'Manager', email: 'john.smith@example.com' },
-      { id: 'm2', lastName: 'Johnson', firstName: 'Sarah', memberType: 'Project Lead', email: 'sarah.johnson@example.com' },
-      { id: 'm3', lastName: 'Williams', firstName: 'Michael', memberType: 'Scheduler', email: 'michael.williams@example.com' },
-      { id: 'm4', lastName: 'Brown', firstName: 'Emily', memberType: 'Scheduler', email: 'emily.brown@example.com' },
-      { id: 'm5', lastName: 'Davis', firstName: 'David', memberType: 'Scheduler', email: 'david.davis@example.com' },
-      { id: 'm6', lastName: 'Miller', firstName: 'Jennifer', memberType: 'Scheduler', email: 'jennifer.miller@example.com' },
-      { id: 'm7', lastName: 'Wilson', firstName: 'Robert', memberType: 'Scheduler', email: 'robert.wilson@example.com' },
-      { id: 'm8', lastName: 'Moore', firstName: 'Linda', memberType: 'Scheduler', email: 'linda.moore@example.com' },
-      { id: 'm9', lastName: 'Taylor', firstName: 'James', memberType: 'Scheduler', email: 'james.taylor@example.com' },
-      { id: 'm10', lastName: 'Anderson', firstName: 'Mary', memberType: 'Scheduler', email: 'mary.anderson@example.com' },
-      { id: 'm11', lastName: 'Thomas', firstName: 'Christopher', memberType: 'Scheduler', email: 'christopher.thomas@example.com' },
-      { id: 'm12', lastName: 'Jackson', firstName: 'Patricia', memberType: 'Scheduler', email: 'patricia.jackson@example.com' }
-    ]
-  },
-  {
-    id: '2',
-    name: 'CAP-1 Issues Distribution',
-    key: 'cap-1-issues-distribution',
-    application: 'CAP-1',
-    description: 'Technical project leads',
-    status: 'Active',
-    members: [
-      { id: 'm13', lastName: 'White', firstName: 'Daniel', memberType: 'Manager', email: 'daniel.white@example.com' },
-      { id: 'm14', lastName: 'Harris', firstName: 'Jessica', memberType: 'Project Lead', email: 'jessica.harris@example.com' },
-      { id: 'm15', lastName: 'Martin', firstName: 'Matthew', memberType: 'Scheduler', email: 'matthew.martin@example.com' },
-      { id: 'm16', lastName: 'Thompson', firstName: 'Ashley', memberType: 'Scheduler', email: 'ashley.thompson@example.com' },
-      { id: 'm17', lastName: 'Garcia', firstName: 'Joshua', memberType: 'Scheduler', email: 'joshua.garcia@example.com' },
-      { id: 'm18', lastName: 'Martinez', firstName: 'Amanda', memberType: 'Scheduler', email: 'amanda.martinez@example.com' },
-      { id: 'm19', lastName: 'Robinson', firstName: 'Andrew', memberType: 'Scheduler', email: 'andrew.robinson@example.com' },
-      { id: 'm20', lastName: 'Clark', firstName: 'Stephanie', memberType: 'Scheduler', email: 'stephanie.clark@example.com' },
-      { id: 'm21', lastName: 'Rodriguez', firstName: 'Kevin', memberType: 'Scheduler', email: 'kevin.rodriguez@example.com' },
-      { id: 'm22', lastName: 'Lewis', firstName: 'Nicole', memberType: 'Scheduler', email: 'nicole.lewis@example.com' },
-      { id: 'm23', lastName: 'Lee', firstName: 'Brian', memberType: 'Scheduler', email: 'brian.lee@example.com' }
-    ]
-  },
-  {
-    id: '3',
-    name: 'CAP-2 Issues Distribution',
-    key: 'cap2-issues-distribution',
-    application: 'CAP-2',
-    description: 'Project scheduling team',
-    status: 'Active',
-    members: [
-      { id: 'm24', lastName: 'Walker', firstName: 'Ryan', memberType: 'Manager', email: 'ryan.walker@example.com' },
-      { id: 'm25', lastName: 'Hall', firstName: 'Michelle', memberType: 'Project Lead', email: 'michelle.hall@example.com' },
-      { id: 'm26', lastName: 'Allen', firstName: 'Brandon', memberType: 'Scheduler', email: 'brandon.allen@example.com' },
-      { id: 'm27', lastName: 'Young', firstName: 'Kimberly', memberType: 'Scheduler', email: 'kimberly.young@example.com' },
-      { id: 'm28', lastName: 'Hernandez', firstName: 'Tyler', memberType: 'Scheduler', email: 'tyler.hernandez@example.com' },
-      { id: 'm29', lastName: 'King', firstName: 'Amy', memberType: 'Scheduler', email: 'amy.king@example.com' },
-      { id: 'm30', lastName: 'Wright', firstName: 'Justin', memberType: 'Scheduler', email: 'justin.wright@example.com' },
-      { id: 'm31', lastName: 'Lopez', firstName: 'Rebecca', memberType: 'Scheduler', email: 'rebecca.lopez@example.com' },
-      { id: 'm32', lastName: 'Hill', firstName: 'Aaron', memberType: 'Scheduler', email: 'aaron.hill@example.com' },
-      { id: 'm33', lastName: 'Scott', firstName: 'Laura', memberType: 'Scheduler', email: 'laura.scott@example.com' },
-      { id: 'm34', lastName: 'Green', firstName: 'Samuel', memberType: 'Scheduler', email: 'samuel.green@example.com' }
-    ]
-  },
-  {
-    id: '4',
-    name: 'X-326 Managers Issues Distribution',
-    key: 'x326-managers-issues-distribution',
-    application: 'X-326',
-    description: 'Executive management',
-    status: 'Inactive',
-    members: [
-      { id: 'm35', lastName: 'Adams', firstName: 'Jonathan', memberType: 'Manager', email: 'jonathan.adams@example.com' },
-      { id: 'm36', lastName: 'Baker', firstName: 'Rachel', memberType: 'Project Lead', email: 'rachel.baker@example.com' },
-      { id: 'm37', lastName: 'Gonzalez', firstName: 'Nathan', memberType: 'Scheduler', email: 'nathan.gonzalez@example.com' },
-      { id: 'm38', lastName: 'Nelson', firstName: 'Megan', memberType: 'Scheduler', email: 'megan.nelson@example.com' },
-      { id: 'm39', lastName: 'Carter', firstName: 'Eric', memberType: 'Scheduler', email: 'eric.carter@example.com' },
-      { id: 'm40', lastName: 'Mitchell', firstName: 'Katherine', memberType: 'Scheduler', email: 'katherine.mitchell@example.com' },
-      { id: 'm41', lastName: 'Perez', firstName: 'Jason', memberType: 'Scheduler', email: 'jason.perez@example.com' },
-      { id: 'm42', lastName: 'Roberts', firstName: 'Angela', memberType: 'Scheduler', email: 'angela.roberts@example.com' },
-      { id: 'm43', lastName: 'Turner', firstName: 'Adam', memberType: 'Scheduler', email: 'adam.turner@example.com' },
-      { id: 'm44', lastName: 'Phillips', firstName: 'Heather', memberType: 'Scheduler', email: 'heather.phillips@example.com' },
-      { id: 'm45', lastName: 'Campbell', firstName: 'Jeremy', memberType: 'Scheduler', email: 'jeremy.campbell@example.com' }
-    ]
-  }
-];
+
 
 // Validation schema
 const validationSchema = Yup.object({
@@ -155,15 +69,65 @@ const validationSchema = Yup.object({
 });
 
 const EmailDistributionGroups: React.FC = () => {
-  const [groups, setGroups] = useState<DistributionGroup[]>(mockGroups);
+  const [groups, setGroups] = useState<DistributionGroup[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState('');
-  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(mockGroups[0]?.id || null);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [selectedRows, setSelectedRows] = useState<GridRowSelectionModel>([]);
   const [memberFilter, setMemberFilter] = useState<'Members' | 'All'>('All');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [copyDialogOpen, setCopyDialogOpen] = useState(false);
 
   const selectedGroup = groups.find(g => g.id === selectedGroupId);
+
+  // Load distribution groups and members on mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch distribution groups
+        const distributionGroups = await dataService.getDistributionGroups();
+        
+        // Fetch all members
+        const allMembers = await dataService.getMembers();
+        
+        // Build groups with members included
+        const groupsWithMembers: DistributionGroup[] = distributionGroups.map((group: any) => {
+          const groupMembers = allMembers.filter((member: any) => member.groupId === group.id);
+          
+          return {
+            id: String(group.id),
+            name: group.name,
+            key: group.key,
+            application: group.application,
+            description: group.description,
+            status: group.status,
+            members: groupMembers.map((m: any) => ({
+              id: m.id,
+              lastName: m.lastName,
+              firstName: m.firstName,
+              memberType: m.memberType,
+              email: m.email
+            }))
+          };
+        });
+        
+        setGroups(groupsWithMembers);
+        
+        // Set first group as selected by default
+        if (groupsWithMembers.length > 0) {
+          setSelectedGroupId(groupsWithMembers[0].id);
+        }
+      } catch (error) {
+        console.error('Error loading distribution groups:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadData();
+  }, []);
 
   // Formik form
   const formik = useFormik({
@@ -405,6 +369,26 @@ const EmailDistributionGroups: React.FC = () => {
   const displayedMembers = memberFilter === 'Members' 
     ? allMembers.filter(member => selectedRows.includes(member.id))
     : allMembers;
+
+  // Show loading state
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 165px)', gap: 2, pr: 3, mt: -2 }}>
+        <Breadcrumbs aria-label="breadcrumb">
+          <Link underline="hover" color="inherit" href="/">
+            Home
+          </Link>
+          <Link underline="hover" color="inherit" href="/admin">
+            Admin
+          </Link>
+          <Typography color="text.primary">Email Distribution Groups</Typography>
+        </Breadcrumbs>
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexGrow: 1 }}>
+          <Typography variant="body1" color="text.secondary">Loading distribution groups...</Typography>
+        </Box>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 165px)', gap: 2, pr: 3, mt: -2 }}>

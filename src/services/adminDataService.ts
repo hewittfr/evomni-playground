@@ -1,27 +1,10 @@
 import { AdminData, App, DataCheck, Settings, Tab, ExportZone, ExportPreset, EventJob } from '../types/adminTypes';
-
-const API_BASE_URL = 'http://localhost:5005';
+import dataService from './dataService';
 
 class AdminDataService {
   async getAdminData(): Promise<AdminData> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin`, {
-        credentials: 'include', // Send Windows Auth credentials
-        headers: {
-          'Accept': 'application/json'
-        }
-      });
-      
-      if (response.status === 401) {
-        const errorData = await response.json().catch(() => ({ error: 'Unauthorized' }));
-        throw new Error(errorData.message || 'User Not authorized');
-      }
-      
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-      
-      const data = await response.json();
+      const data = await dataService.getAdminData();
       return data as AdminData;
     } catch (error) {
       console.error('Failed to fetch admin data:', error);
