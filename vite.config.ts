@@ -44,5 +44,7 @@ export default defineConfig({
   },
   build: {
     outDir: 'build'
-  }
+  },
+  publicDir: 'public',
+  assetsInclude: ['**/*.json']
 })
