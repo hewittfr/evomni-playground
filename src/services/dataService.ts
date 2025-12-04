@@ -17,7 +17,7 @@ async function getDatabase() {
     return databaseCache;
   }
   
-  const response = await dbClient.get('database/database.json');
+  const response = await dbClient.get(`src/database/database.json?t=${Date.now()}`);
   databaseCache = response.data;
   return databaseCache;
 }
@@ -48,10 +48,35 @@ export const dataService = {
     return db.members || [];
   },
 
-  // Get members by group ID
+  // Get project members (mapping of members to projects)
+  async getProjectMembers() {
+    const db = await getDatabase();
+    return db.projectMembers || [];
+  },
+
+  // Get members by project
+  async getMembersByProject(project: string) {
+    const db = await getDatabase();
+    const projectMembers = db.projectMembers || [];
+    const members = db.members || [];
+    
+    // Get member IDs for this project
+    const memberIds = projectMembers
+      .filter((pm: any) => pm.project === project)
+      .map((pm: any) => pm.memberId);
+    
+    // Return full member objects
+    return members.filter((m: any) => memberIds.includes(m.id));
+  },
+
+  // Get members by group ID (legacy - now uses project)
   async getMembersByGroupId(groupId: number | string) {
     const db = await getDatabase();
-    return db.members?.filter((m: any) => m.groupId === groupId || m.groupId === Number(groupId)) || [];
+    const group = db.distributionGroups?.find((g: any) => g.id === groupId || g.id === Number(groupId));
+    if (!group) return [];
+    
+    // Use the group's project to find members
+    return this.getMembersByProject(group.project);
   },
 
   // Get settings

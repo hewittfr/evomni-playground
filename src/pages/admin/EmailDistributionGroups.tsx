@@ -29,6 +29,11 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import GroupIcon from '@mui/icons-material/Group';
+import AddIcon from '@mui/icons-material/Add';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import SaveIcon from '@mui/icons-material/Save';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { DataGrid, GridColDef, GridRowSelectionModel } from '@mui/x-data-grid';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
@@ -39,7 +44,8 @@ interface DistributionGroupMember {
   id: string;
   lastName: string;
   firstName: string;
-  memberType: 'Manager' | 'Project Lead' | 'Scheduler';
+  memberRole: 'Manager' | 'Project Lead' | 'Scheduler';
+  memberSource: 'p6' | 'custom';
   email: string;
 }
 
@@ -47,7 +53,7 @@ interface DistributionGroup {
   id: string;
   name: string;
   key: string;
-  application?: string;
+  project?: string;
   description?: string;
   status: 'Active' | 'Inactive';
   members: DistributionGroupMember[];
@@ -63,7 +69,7 @@ const validationSchema = Yup.object({
   key: Yup.string()
     .required('Key is required')
     .matches(/^[a-z0-9-]+$/, 'Key must be lowercase with hyphens only'),
-  application: Yup.string().required('Application is required'),
+  project: Yup.string().required('Project is required'),
   description: Yup.string().required('Description is required'),
   status: Yup.string().required('Status is required')
 });
@@ -77,6 +83,9 @@ const EmailDistributionGroups: React.FC = () => {
   const [memberFilter, setMemberFilter] = useState<'Members' | 'All'>('All');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [copyDialogOpen, setCopyDialogOpen] = useState(false);
+  const [newMemberDialogOpen, setNewMemberDialogOpen] = useState(false);
+  const [allMembers, setAllMembers] = useState<DistributionGroupMember[]>([]);
+  const [projectMembers, setProjectMembers] = useState<any[]>([]);
 
   const selectedGroup = groups.find(g => g.id === selectedGroupId);
 
@@ -90,24 +99,30 @@ const EmailDistributionGroups: React.FC = () => {
         const distributionGroups = await dataService.getDistributionGroups();
         
         // Fetch all members
-        const allMembers = await dataService.getMembers();
+        const members = await dataService.getMembers();
+        setAllMembers(members);
         
-        // Build groups with members included
+        // Fetch project members mapping
+        const projMembers = await dataService.getProjectMembers();
+        setProjectMembers(projMembers);
+        
+        // Build groups with members included from the group.members array
         const groupsWithMembers: DistributionGroup[] = distributionGroups.map((group: any) => {
-          const groupMembers = allMembers.filter((member: any) => member.groupId === group.id);
+          const groupMemberIds = group.members || [];
+          const groupMembers = members.filter((member: any) => groupMemberIds.includes(member.id));
           
           return {
             id: String(group.id),
             name: group.name,
             key: group.key,
-            application: group.application,
+            project: group.project,
             description: group.description,
             status: group.status,
             members: groupMembers.map((m: any) => ({
               id: m.id,
               lastName: m.lastName,
               firstName: m.firstName,
-              memberType: m.memberType,
+              memberRole: m.memberRole,
               email: m.email
             }))
           };
@@ -134,39 +149,165 @@ const EmailDistributionGroups: React.FC = () => {
     initialValues: {
       name: '',
       key: '',
-      application: '',
+      project: '',
       description: '',
       status: 'Inactive' as 'Active' | 'Inactive'
     },
     validationSchema,
-    onSubmit: (values) => {
+    onSubmit: async (values) => {
       if (selectedGroupId) {
         // Update existing group
-        setGroups(groups.map(g => 
+        const updatedGroups = groups.map(g => 
           g.id === selectedGroupId 
             ? {
                 ...g,
                 name: values.name,
                 key: values.key,
-                application: values.application,
+                project: values.project,
                 description: values.description,
                 status: values.status
               }
             : g
-        ));
+        );
+        setGroups(updatedGroups);
+        
+        // Save to database.json
+        try {
+          const response = await fetch('/evomni-playground/src/database/database.json');
+          const db = await response.json();
+          
+          const groupIndex = db.distributionGroups.findIndex((g: any) => g.id === Number(selectedGroupId));
+          if (groupIndex !== -1) {
+            db.distributionGroups[groupIndex].name = values.name;
+            db.distributionGroups[groupIndex].key = values.key;
+            db.distributionGroups[groupIndex].project = values.project;
+            db.distributionGroups[groupIndex].description = values.description;
+            db.distributionGroups[groupIndex].status = values.status;
+            
+            const saveResponse = await fetch('/api/save-database', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(db)
+            });
+            
+            const saveResult = await saveResponse.json();
+            if (saveResult.success) {
+              console.log('Distribution group saved successfully');
+            } else {
+              console.error('Save failed:', saveResult.error);
+            }
+          }
+        } catch (error) {
+          console.error('Error updating database:', error);
+        }
       } else {
         // Create new group
         const newGroup: DistributionGroup = {
           id: `${Date.now()}`,
           name: values.name,
           key: values.key,
-          application: values.application,
+          project: values.project,
           description: values.description,
           status: values.status,
           members: []
         };
         setGroups([...groups, newGroup]);
         setSelectedGroupId(newGroup.id);
+        
+        // Save to database.json
+        try {
+          const response = await fetch('/evomni-playground/src/database/database.json');
+          const db = await response.json();
+          
+          db.distributionGroups.push({
+            id: Number(newGroup.id),
+            name: newGroup.name,
+            key: newGroup.key,
+            project: newGroup.project,
+            description: newGroup.description,
+            status: newGroup.status,
+            members: [],
+            memberCount: 0
+          });
+          
+          const saveResponse = await fetch('/api/save-database', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(db)
+          });
+          
+          const saveResult = await saveResponse.json();
+          if (saveResult.success) {
+            console.log('New distribution group created successfully');
+          } else {
+            console.error('Save failed:', saveResult.error);
+          }
+        } catch (error) {
+          console.error('Error creating group in database:', error);
+        }
+      }
+    }
+  });
+
+  // New member formik
+  const newMemberFormik = useFormik({
+    initialValues: {
+      firstName: '',
+      lastName: '',
+      email: '',
+      memberRole: 'Scheduler' as 'Manager' | 'Project Lead' | 'Scheduler',
+      memberSource: 'custom' as 'p6' | 'custom'
+    },
+    validationSchema: Yup.object({
+      firstName: Yup.string().required('First name is required'),
+      lastName: Yup.string().required('Last name is required'),
+      email: Yup.string().email('Invalid email').required('Email is required'),
+      memberRole: Yup.string().required('Role is required')
+    }),
+    onSubmit: async (values) => {
+      try {
+        const response = await fetch('/evomni-playground/src/database/database.json');
+        const db = await response.json();
+        
+        // Generate new member ID
+        const maxId = Math.max(...db.members.map((m: any) => parseInt(m.id.replace('m', ''))));
+        const newMemberId = `m${maxId + 1}`;
+        
+        const newMember = {
+          id: newMemberId,
+          firstName: values.firstName,
+          lastName: values.lastName,
+          email: values.email,
+          memberRole: values.memberRole,
+          memberSource: values.memberSource,
+          percentChange: 0
+        };
+        
+        db.members.push(newMember);
+        
+        const saveResponse = await fetch('/api/save-database', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(db)
+        });
+        
+        const saveResult = await saveResponse.json();
+        if (saveResult.success) {
+          console.log('New member created successfully');
+          setAllMembers([...allMembers, newMember as DistributionGroupMember]);
+          setNewMemberDialogOpen(false);
+          newMemberFormik.resetForm();
+        } else {
+          console.error('Save failed:', saveResult.error);
+        }
+      } catch (error) {
+        console.error('Error creating member:', error);
       }
     }
   });
@@ -177,7 +318,7 @@ const EmailDistributionGroups: React.FC = () => {
       formik.setValues({
         name: selectedGroup.name,
         key: selectedGroup.key,
-        application: selectedGroup.application || '',
+        project: selectedGroup.project || '',
         description: selectedGroup.description || '',
         status: selectedGroup.status
       });
@@ -197,52 +338,84 @@ const EmailDistributionGroups: React.FC = () => {
       .replace(/\s+/g, '-')
       .replace(/[^a-z0-9-]/g, '');
     
-    // Prefix with application if selected
-    const application = formik.values.application;
-    const finalKey = application ? `${application.toLowerCase()}-${generatedKey}` : generatedKey;
+    // Prefix with project if selected
+    const project = formik.values.project;
+    const finalKey = project ? `${project.toLowerCase()}-${generatedKey}` : generatedKey;
     formik.setFieldValue('key', finalKey);
   };
 
-  // Handle application change and update key
-  const handleApplicationChange = (e: any) => {
-    const application = e.target.value;
-    formik.setFieldValue('application', application);
+  // Handle project change and update key
+  const handleProjectChange = (e: any) => {
+    const project = e.target.value;
+    formik.setFieldValue('project', project);
     
-    // Regenerate key with new application prefix
+    // Regenerate key with new project prefix
     const name = formik.values.name;
     const generatedKey = name
       .toLowerCase()
       .replace(/\s+/g, '-')
       .replace(/[^a-z0-9-]/g, '');
     
-    const finalKey = application ? `${application.toLowerCase()}-${generatedKey}` : generatedKey;
+    const finalKey = project ? `${project.toLowerCase()}-${generatedKey}` : generatedKey;
     formik.setFieldValue('key', finalKey);
   };
 
   // Handle member selection changes
-  const handleMemberSelectionChange = (newSelection: GridRowSelectionModel) => {
+  const handleMemberSelectionChange = async (newSelection: GridRowSelectionModel) => {
     setSelectedRows(newSelection);
     
     // Update the group's members based on selection
-    if (selectedGroupId) {
-      const allMembers = groups.flatMap(g => g.members);
-      const currentGroupMembers = selectedGroup?.members || [];
-      const selectedMembers = allMembers.filter(member => newSelection.includes(member.id));
+    if (selectedGroupId && selectedGroup) {
+      // Get the full member objects for the selected IDs from potentialMembers
+      const selectedMemberIds = newSelection as string[];
+      const selectedMembers = allMembers.filter(member => selectedMemberIds.includes(member.id));
       
-      // Merge selected members with existing members to avoid removing unchecked ones
-      const updatedMembers = [...currentGroupMembers];
-      
-      selectedMembers.forEach(member => {
-        if (!updatedMembers.find(m => m.id === member.id)) {
-          updatedMembers.push(member);
-        }
-      });
-      
-      setGroups(groups.map(g => 
+      // Update local state
+      const updatedGroups = groups.map(g => 
         g.id === selectedGroupId 
-          ? { ...g, members: updatedMembers }
+          ? { ...g, members: selectedMembers }
           : g
-      ));
+      );
+      setGroups(updatedGroups);
+      
+      // Save to database.json
+      try {
+        console.log('Fetching database.json...');
+        const response = await fetch('/evomni-playground/src/database/database.json');
+        const db = await response.json();
+        
+        console.log('Updating group:', selectedGroupId, 'with members:', selectedMemberIds);
+        
+        // Update the distribution group in the database
+        const groupIndex = db.distributionGroups.findIndex((g: any) => g.id === Number(selectedGroupId));
+        if (groupIndex !== -1) {
+          db.distributionGroups[groupIndex].members = selectedMemberIds;
+          db.distributionGroups[groupIndex].memberCount = selectedMemberIds.length;
+          
+          console.log('Saving to /api/save-database...');
+          // Save back to file via API
+          const saveResponse = await fetch('/api/save-database', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(db)
+          });
+          
+          const saveResult = await saveResponse.json();
+          console.log('Save result:', saveResult);
+          
+          if (saveResult.success) {
+            console.log('Distribution group members saved successfully');
+          } else {
+            console.error('Save failed:', saveResult.error);
+          }
+        } else {
+          console.error('Group not found in database');
+        }
+      } catch (error) {
+        console.error('Error updating database:', error);
+      }
     }
   };
 
@@ -252,7 +425,7 @@ const EmailDistributionGroups: React.FC = () => {
       values: {
         name: '',
         key: '',
-        application: '',
+        project: '',
         description: '',
         status: 'Inactive'
       }
@@ -270,7 +443,7 @@ const EmailDistributionGroups: React.FC = () => {
         id: `${Date.now()}`,
         name: `Copy of ${selectedGroup.name}`,
         key: `copy-of-${selectedGroup.key}`,
-        application: selectedGroup.application,
+        project: selectedGroup.project,
         description: selectedGroup.description,
         status: selectedGroup.status,
         members: [...selectedGroup.members]
@@ -311,6 +484,7 @@ const EmailDistributionGroups: React.FC = () => {
       field: 'name',
       headerName: 'Name (Last, First)',
       flex: 1,
+      valueGetter: (params) => `${params.row.lastName}, ${params.row.firstName}`,
       renderCell: (params) => {
         const firstName = params.row.firstName;
         const lastName = params.row.lastName;
@@ -335,8 +509,8 @@ const EmailDistributionGroups: React.FC = () => {
       }
     },
     {
-      field: 'memberType',
-      headerName: 'Member Type',
+      field: 'memberRole',
+      headerName: 'Member Role',
       flex: 1,
       renderCell: (params) => {
         const type = params.value as string;
@@ -354,6 +528,18 @@ const EmailDistributionGroups: React.FC = () => {
       }
     },
     {
+      field: 'memberSource',
+      headerName: 'Member Type',
+      flex: 0.7,
+      renderCell: (params) => {
+        const source = params.value as string;
+        const label = source === 'p6' ? 'P6' : 'Custom';
+        const color = source === 'p6' ? 'default' : 'secondary';
+        
+        return <Chip label={label} color={color} size="small" sx={{ height: 20, fontSize: '0.7rem', '& .MuiChip-label': { px: 1 } }} />;
+      }
+    },
+    {
       field: 'email',
       headerName: 'Email Address',
       flex: 1
@@ -364,11 +550,20 @@ const EmailDistributionGroups: React.FC = () => {
     group.name.toLowerCase().includes(searchText.toLowerCase())
   );
 
+  // Get all potential members for the selected group's project
+  const potentialMembers = selectedGroup && selectedGroup.project
+    ? allMembers.filter(member => {
+        // Check if this member is mapped to this project
+        return projectMembers.some(pm => 
+          pm.project === selectedGroup.project && pm.memberId === member.id
+        );
+      })
+    : [];
+
   // Get members to display based on filter
-  const allMembers = selectedGroup?.members || [];
   const displayedMembers = memberFilter === 'Members' 
-    ? allMembers.filter(member => selectedRows.includes(member.id))
-    : allMembers;
+    ? potentialMembers.filter(member => selectedRows.includes(member.id))
+    : potentialMembers;
 
   // Show loading state
   if (loading) {
@@ -418,7 +613,7 @@ const EmailDistributionGroups: React.FC = () => {
           <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
               <Typography variant="h6">Distribution Groups</Typography>
-              <Button variant="contained" size="small" onClick={handleNewGroup}>
+              <Button variant="contained" size="small" onClick={handleNewGroup} startIcon={<AddIcon />}>
                 New
               </Button>
             </Box>
@@ -445,13 +640,14 @@ const EmailDistributionGroups: React.FC = () => {
                   button
                   selected={selectedGroupId === group.id}
                   onClick={() => setSelectedGroupId(group.id)}
+                  sx={{ alignItems: 'flex-start' }}
                 >
-                  <ListItemIcon>
+                  <ListItemIcon sx={{ mt: '4px' }}>
                     <GroupIcon />
                   </ListItemIcon>
                   <ListItemText
                     primary={
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <span>{group.name}</span>
                         <Chip 
                           label={group.status} 
@@ -459,6 +655,7 @@ const EmailDistributionGroups: React.FC = () => {
                           size="small"
                           sx={{ 
                             ml: 1,
+                            mt: '4px',
                             height: 18,
                             fontSize: '0.65rem',
                             '& .MuiChip-label': {
@@ -470,7 +667,7 @@ const EmailDistributionGroups: React.FC = () => {
                     }
                     secondary={
                       <Typography variant="caption" color="text.secondary">
-                        {group.application && `${group.application} - `}
+                        {group.project && `${group.project} - `}
                         {group.members.length} member{group.members.length !== 1 ? 's' : ''}
                       </Typography>
                     }
@@ -491,16 +688,16 @@ const EmailDistributionGroups: React.FC = () => {
                 {selectedGroupId ? `Edit Group: ${selectedGroup?.name}` : 'New Group'}
               </Typography>
               <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button variant="outlined" size="small" onClick={handleNewGroup}>
+                <Button variant="outlined" size="small" onClick={handleNewGroup} startIcon={<AddIcon />}>
                   New
                 </Button>
-                <Button variant="outlined" size="small" onClick={handleCopy} disabled={!selectedGroupId}>
+                <Button variant="outlined" size="small" onClick={handleCopy} disabled={!selectedGroupId} startIcon={<ContentCopyIcon />}>
                   Copy
                 </Button>
-                <Button variant="outlined" size="small" onClick={handleSave}>
+                <Button variant="outlined" size="small" onClick={handleSave} startIcon={<SaveIcon />}>
                   Save
                 </Button>
-                <Button variant="outlined" size="small" color="error" onClick={handleDelete} disabled={!selectedGroupId}>
+                <Button variant="outlined" size="small" color="error" onClick={handleDelete} disabled={!selectedGroupId} startIcon={<DeleteIcon />}>
                   Delete
                 </Button>
               </Box>
@@ -532,12 +729,12 @@ const EmailDistributionGroups: React.FC = () => {
                   {/* Left Column */}
                   <Grid item xs={6}>
                     <Grid container spacing={2}>
-                      {/* Application */}
+                      {/* Project */}
                       <Grid item xs={12}>
                         <FormControl
                           size="small"
                           fullWidth
-                          error={formik.touched.application && Boolean(formik.errors.application)}
+                          error={formik.touched.project && Boolean(formik.errors.project)}
                           sx={{
                             '& .MuiInputLabel-root': {
                               fontSize: '0.75rem'
@@ -547,13 +744,13 @@ const EmailDistributionGroups: React.FC = () => {
                             }
                           }}
                         >
-                          <InputLabel id="application-label">Application *</InputLabel>
+                          <InputLabel id="project-label">Project *</InputLabel>
                           <Select
-                            labelId="application-label"
-                            label="Application *"
-                            name="application"
-                            value={formik.values.application}
-                            onChange={handleApplicationChange}
+                            labelId="project-label"
+                            label="Project *"
+                            name="project"
+                            value={formik.values.project}
+                            onChange={handleProjectChange}
                             onBlur={formik.handleBlur}
                             MenuProps={{
                               PaperProps: {
@@ -573,9 +770,9 @@ const EmailDistributionGroups: React.FC = () => {
                             <MenuItem value="X-326">X-326</MenuItem>
                             <MenuItem value="X-333">X-333</MenuItem>
                           </Select>
-                          {formik.touched.application && formik.errors.application && (
+                          {formik.touched.project && formik.errors.project && (
                             <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75, fontSize: '0.65rem' }}>
-                              {formik.errors.application}
+                              {formik.errors.project}
                             </Typography>
                           )}
                         </FormControl>
@@ -742,27 +939,38 @@ const EmailDistributionGroups: React.FC = () => {
             >
               <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Typography variant="subtitle1">Distribution Group Members</Typography>
-                <ToggleButtonGroup
-                  value={memberFilter}
-                  exclusive
-                  onChange={(e, newFilter) => {
-                    if (newFilter !== null) {
-                      setMemberFilter(newFilter);
-                    }
-                  }}
-                  size="small"
-                  sx={{
-                    '& .MuiToggleButton-root': {
-                      fontSize: '0.75rem',
-                      padding: '2px 8px'
-                    }
-                  }}
-                >
-                  <ToggleButton value="All">All</ToggleButton>
-                  <ToggleButton value="Members">Members</ToggleButton>
-                </ToggleButtonGroup>
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                  <ToggleButtonGroup
+                    value={memberFilter}
+                    exclusive
+                    onChange={(e, newFilter) => {
+                      if (newFilter !== null) {
+                        setMemberFilter(newFilter);
+                      }
+                    }}
+                    size="small"
+                    sx={{
+                      '& .MuiToggleButton-root': {
+                        fontSize: '0.75rem',
+                        padding: '2px 8px'
+                      }
+                    }}
+                  >
+                    <ToggleButton value="All">All</ToggleButton>
+                    <ToggleButton value="Members">Members</ToggleButton>
+                  </ToggleButtonGroup>
+                  <Button
+                    variant="contained"
+                    size="small"
+                    onClick={() => setNewMemberDialogOpen(true)}
+                    startIcon={<PersonAddIcon />}
+                    sx={{ fontSize: '0.75rem', padding: '2px 8px' }}
+                  >
+                    New Member
+                  </Button>
+                </Box>
               </Box>
-              <Box sx={{ flexGrow: 1 }}>
+              <Box sx={{ height: 600, width: '100%' }}>
                 <DataGrid
                   rows={displayedMembers}
                   columns={columns}
@@ -771,6 +979,17 @@ const EmailDistributionGroups: React.FC = () => {
                   density="compact"
                   rowSelectionModel={selectedRows}
                   onRowSelectionModelChange={handleMemberSelectionChange}
+                  initialState={{
+                    sorting: {
+                      sortModel: [
+                        { field: 'memberRole', sort: 'asc' }
+                      ]
+                    },
+                    pagination: {
+                      paginationModel: { pageSize: 25 }
+                    }
+                  }}
+                  pageSizeOptions={[25, 50, 100]}
                   sx={{
                     border: 'none',
                     '& .MuiDataGrid-cell': {
@@ -780,6 +999,12 @@ const EmailDistributionGroups: React.FC = () => {
                     '& .MuiDataGrid-columnHeaders': {
                       borderColor: 'divider',
                       fontSize: '0.75rem'
+                    },
+                    '& .MuiDataGrid-footerContainer': {
+                      borderTop: '1px solid',
+                      borderColor: 'divider',
+                      minHeight: '28px',
+                      height: '28px'
                     }
                   }}
                 />
@@ -845,6 +1070,80 @@ const EmailDistributionGroups: React.FC = () => {
           </Button>
           <Button onClick={confirmCopy} color="primary" variant="contained" autoFocus>
             Copy
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* New Member Dialog */}
+      <Dialog
+        open={newMemberDialogOpen}
+        onClose={() => setNewMemberDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Add New Member</DialogTitle>
+        <DialogContent>
+          <Box component="form" onSubmit={newMemberFormik.handleSubmit} sx={{ pt: 2 }}>
+            <Grid container spacing={2}>
+              <Grid item xs={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="First Name"
+                  name="firstName"
+                  value={newMemberFormik.values.firstName}
+                  onChange={newMemberFormik.handleChange}
+                  error={newMemberFormik.touched.firstName && Boolean(newMemberFormik.errors.firstName)}
+                  helperText={newMemberFormik.touched.firstName && newMemberFormik.errors.firstName}
+                />
+              </Grid>
+              <Grid item xs={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Last Name"
+                  name="lastName"
+                  value={newMemberFormik.values.lastName}
+                  onChange={newMemberFormik.handleChange}
+                  error={newMemberFormik.touched.lastName && Boolean(newMemberFormik.errors.lastName)}
+                  helperText={newMemberFormik.touched.lastName && newMemberFormik.errors.lastName}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Email"
+                  name="email"
+                  type="email"
+                  value={newMemberFormik.values.email}
+                  onChange={newMemberFormik.handleChange}
+                  error={newMemberFormik.touched.email && Boolean(newMemberFormik.errors.email)}
+                  helperText={newMemberFormik.touched.email && newMemberFormik.errors.email}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Role</InputLabel>
+                  <Select
+                    name="memberRole"
+                    value={newMemberFormik.values.memberRole}
+                    onChange={newMemberFormik.handleChange}
+                    label="Role"
+                  >
+                    <MenuItem value="Manager">Manager</MenuItem>
+                    <MenuItem value="Project Lead">Project Lead</MenuItem>
+                    <MenuItem value="Scheduler">Scheduler</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+            </Grid>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setNewMemberDialogOpen(false)}>Cancel</Button>
+          <Button onClick={() => newMemberFormik.handleSubmit()} variant="contained" color="primary">
+            Create Member
           </Button>
         </DialogActions>
       </Dialog>
