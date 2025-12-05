@@ -2398,27 +2398,192 @@
   ],
   "tabs": [
     {
-      "id": "tab1",
+      "id": "tab-evms-em",
+      "appId": "evms",
       "name": "EM",
-      "description": "Event Management tab",
+      "description": "EM Project Tab",
       "key": "em",
       "sortOrder": 1,
       "status": "Active"
     },
     {
-      "id": "tab2",
+      "id": "tab-evms-cap1",
+      "appId": "evms",
       "name": "CAP-1",
-      "description": "Capacity Analysis 1",
+      "description": "CAP-1 Project Tab",
       "key": "cap-1",
       "sortOrder": 2,
       "status": "Active"
     },
     {
-      "id": "tab3",
+      "id": "tab-evms-cap2",
+      "appId": "evms",
       "name": "CAP-2",
-      "description": "Capacity Analysis 2",
+      "description": "CAP-2 Project Tab",
       "key": "cap-2",
       "sortOrder": 3,
+      "status": "Active"
+    },
+    {
+      "id": "tab-evms-cap3",
+      "appId": "evms",
+      "name": "CAP-3",
+      "description": "CAP-3 Project Tab",
+      "key": "cap-3",
+      "sortOrder": 4,
+      "status": "Active"
+    },
+    {
+      "id": "tab-evms-x326",
+      "appId": "evms",
+      "name": "X-326",
+      "description": "X-326 Project Tab",
+      "key": "x-326",
+      "sortOrder": 5,
+      "status": "Active"
+    },
+    {
+      "id": "tab-evms-x333",
+      "appId": "evms",
+      "name": "X-333",
+      "description": "X-333 Project Tab",
+      "key": "x-333",
+      "sortOrder": 6,
+      "status": "Active"
+    },
+    {
+      "id": "tab-evms-other",
+      "appId": "evms",
+      "name": "Other",
+      "description": "Other Projects Tab",
+      "key": "other",
+      "sortOrder": 7,
+      "status": "Active"
+    },
+    {
+      "id": "tab-evfc-em",
+      "appId": "evfc",
+      "name": "EM",
+      "description": "EM Project Tab",
+      "key": "em",
+      "sortOrder": 1,
+      "status": "Active"
+    },
+    {
+      "id": "tab-evfc-cap1",
+      "appId": "evfc",
+      "name": "CAP-1",
+      "description": "CAP-1 Project Tab",
+      "key": "cap-1",
+      "sortOrder": 2,
+      "status": "Active"
+    },
+    {
+      "id": "tab-evfc-cap2",
+      "appId": "evfc",
+      "name": "CAP-2",
+      "description": "CAP-2 Project Tab",
+      "key": "cap-2",
+      "sortOrder": 3,
+      "status": "Active"
+    },
+    {
+      "id": "tab-evfc-cap3",
+      "appId": "evfc",
+      "name": "CAP-3",
+      "description": "CAP-3 Project Tab",
+      "key": "cap-3",
+      "sortOrder": 4,
+      "status": "Active"
+    },
+    {
+      "id": "tab-evfc-x326",
+      "appId": "evfc",
+      "name": "X-326",
+      "description": "X-326 Project Tab",
+      "key": "x-326",
+      "sortOrder": 5,
+      "status": "Active"
+    },
+    {
+      "id": "tab-evfc-x333",
+      "appId": "evfc",
+      "name": "X-333",
+      "description": "X-333 Project Tab",
+      "key": "x-333",
+      "sortOrder": 6,
+      "status": "Active"
+    },
+    {
+      "id": "tab-evfc-other",
+      "appId": "evfc",
+      "name": "Other",
+      "description": "Other Projects Tab",
+      "key": "other",
+      "sortOrder": 7,
+      "status": "Active"
+    },
+    {
+      "id": "tab-evcsa-em",
+      "appId": "evcsa",
+      "name": "EM",
+      "description": "EM Project Tab",
+      "key": "em",
+      "sortOrder": 1,
+      "status": "Active"
+    },
+    {
+      "id": "tab-evcsa-cap1",
+      "appId": "evcsa",
+      "name": "CAP-1",
+      "description": "CAP-1 Project Tab",
+      "key": "cap-1",
+      "sortOrder": 2,
+      "status": "Active"
+    },
+    {
+      "id": "tab-evcsa-cap2",
+      "appId": "evcsa",
+      "name": "CAP-2",
+      "description": "CAP-2 Project Tab",
+      "key": "cap-2",
+      "sortOrder": 3,
+      "status": "Active"
+    },
+    {
+      "id": "tab-evcsa-cap3",
+      "appId": "evcsa",
+      "name": "CAP-3",
+      "description": "CAP-3 Project Tab",
+      "key": "cap-3",
+      "sortOrder": 4,
+      "status": "Active"
+    },
+    {
+      "id": "tab-evcsa-x326",
+      "appId": "evcsa",
+      "name": "X-326",
+      "description": "X-326 Project Tab",
+      "key": "x-326",
+      "sortOrder": 5,
+      "status": "Active"
+    },
+    {
+      "id": "tab-evcsa-x333",
+      "appId": "evcsa",
+      "name": "X-333",
+      "description": "X-333 Project Tab",
+      "key": "x-333",
+      "sortOrder": 6,
+      "status": "Active"
+    },
+    {
+      "id": "tab-evcsa-other",
+      "appId": "evcsa",
+      "name": "Other",
+      "description": "Other Projects Tab",
+      "key": "other",
+      "sortOrder": 7,
       "status": "Active"
     }
   ],
