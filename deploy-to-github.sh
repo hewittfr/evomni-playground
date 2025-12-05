@@ -4,40 +4,42 @@ echo "🚀 GitHub Pages Deployment Script"
 echo "=================================="
 echo ""
 
-# Open GitHub to create repository
-echo "📋 Opening GitHub to create repository..."
-echo ""
-open "https://github.com/new"
-echo ""
-echo "Please create a repository with these settings:"
-echo "  • Name: evomni-playground"
-echo "  • Public (required for GitHub Pages)"
-echo "  • Do NOT add README, .gitignore, or license"
-echo ""
-read -p "Press Enter after you've created the repository..."
-echo ""
+# Ensure we're on the main branch
+echo "📋 Ensuring we're on main branch..."
+git checkout main
 
-# Add remote origin
-echo "📋 Linking to GitHub repository..."
-git remote add origin https://github.com/hewittfr/evomni-playground.git 2>/dev/null || git remote set-url origin https://github.com/hewittfr/evomni-playground.git
+# Add and commit any changes
+echo ""
+echo "📋 Committing any pending changes..."
+git add -A
+git commit -m "Deploy updates to GitHub Pages" || echo "No changes to commit"
 
 # Push to main branch
 echo ""
 echo "📋 Pushing code to GitHub..."
-git push -u origin main
+git push origin main
 
 if [ $? -ne 0 ]; then
     echo "❌ Failed to push to GitHub."
-    echo "   Make sure the repository was created successfully."
     echo "   You may need to authenticate with GitHub."
     exit 1
 fi
 
 echo "✅ Code pushed successfully!"
 
+# Build the app
+echo ""
+echo "📋 Building production version..."
+npm run build
+
+if [ $? -ne 0 ]; then
+    echo "❌ Build failed. Please check the errors above."
+    exit 1
+fi
+
 # Deploy to GitHub Pages
 echo ""
-echo "📋 Building and deploying to GitHub Pages..."
+echo "📋 Deploying to GitHub Pages..."
 npm run deploy
 
 if [ $? -ne 0 ]; then
@@ -54,3 +56,4 @@ echo ""
 echo "📝 Note: It may take 1-2 minutes for GitHub Pages to build."
 echo "📝 Check deployment status at:"
 echo "   https://github.com/hewittfr/evomni-playground/deployments"
+
