@@ -19,12 +19,23 @@ import {
   Chip,
   IconButton,
   ToggleButton,
-  ToggleButtonGroup
+  ToggleButtonGroup,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText
 } from '@mui/material';
 import { 
   Add as AddIcon,
   ArrowUpward as ArrowUpwardIcon,
-  ArrowDownward as ArrowDownwardIcon
+  ArrowDownward as ArrowDownwardIcon,
+  MoreVert as MoreVertIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  ContentCopy as ContentCopyIcon,
+  Settings as SettingsIcon,
+  CheckCircle as CheckCircleIcon,
+  Tab as TabIcon
 } from '@mui/icons-material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Formik, Form, Field } from 'formik';
@@ -54,14 +65,17 @@ const dataChecksColumns = (handleEditDataCheck: (dataCheck: DataCheck) => void, 
     headerName: 'Name', 
     width: 200,
     renderCell: (params) => (
-      <Link
-        component="button"
-        variant="body2"
-        onClick={() => handleEditDataCheck(params.row)}
-        sx={{ textAlign: 'left', fontSize: '0.875rem' }}
-      >
-        {params.value}
-      </Link>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <CheckCircleIcon sx={{ fontSize: '1.1rem', color: 'success.main' }} />
+        <Link
+          component="button"
+          variant="body2"
+          onClick={() => handleEditDataCheck(params.row)}
+          sx={{ textAlign: 'left', fontSize: '0.8rem' }}
+        >
+          {params.value}
+        </Link>
+      </Box>
     )
   },
   { field: 'description', headerName: 'Description', width: 450 },
@@ -137,17 +151,20 @@ const dataChecksColumns = (handleEditDataCheck: (dataCheck: DataCheck) => void, 
         value={params.value}
         exclusive
         size="small"
-        sx={{ height: '28px' }}
+        sx={{ height: '24px' }}
       >
         <ToggleButton 
           value="Active" 
           sx={{ 
-            px: 1.5, 
-            py: 0.5, 
-            fontSize: '0.75rem',
+            px: 1, 
+            fontSize: '0.7rem',
+            textTransform: 'none',
+            border: '1px solid',
+            borderColor: 'divider',
             '&.Mui-selected': {
               backgroundColor: 'success.main',
-              color: 'success.contrastText',
+              color: 'white',
+              borderColor: 'success.main',
               '&:hover': {
                 backgroundColor: 'success.dark',
               }
@@ -159,14 +176,17 @@ const dataChecksColumns = (handleEditDataCheck: (dataCheck: DataCheck) => void, 
         <ToggleButton 
           value="Inactive" 
           sx={{ 
-            px: 1.5, 
-            py: 0.5, 
-            fontSize: '0.75rem',
+            px: 1, 
+            fontSize: '0.7rem',
+            textTransform: 'none',
+            border: '1px solid',
+            borderColor: 'divider',
             '&.Mui-selected': {
-              backgroundColor: 'action.disabled',
-              color: 'text.primary',
+              backgroundColor: 'action.disabledBackground',
+              color: 'text.secondary',
+              borderColor: 'divider',
               '&:hover': {
-                backgroundColor: 'action.disabledBackground',
+                backgroundColor: 'action.hover',
               }
             }
           }}
@@ -174,6 +194,24 @@ const dataChecksColumns = (handleEditDataCheck: (dataCheck: DataCheck) => void, 
           Inactive
         </ToggleButton>
       </ToggleButtonGroup>
+    )
+  },
+  { 
+    field: 'actions', 
+    headerName: 'Actions', 
+    width: 80,
+    sortable: false,
+    renderCell: (params) => (
+      <IconButton
+        size="small"
+        onClick={(e) => {
+          e.stopPropagation();
+          params.row.handleMenuOpen(e, params.row);
+        }}
+        sx={{ color: 'text.secondary' }}
+      >
+        <MoreVertIcon fontSize="small" />
+      </IconButton>
     )
   }
 ];
@@ -184,14 +222,17 @@ const settingsColumns = (handleEditSetting: (setting: Settings) => void): GridCo
     headerName: 'Name', 
     width: 200,
     renderCell: (params) => (
-      <Link
-        component="button"
-        variant="body2"
-        onClick={() => handleEditSetting(params.row)}
-        sx={{ textAlign: 'left', fontSize: '0.875rem' }}
-      >
-        {params.value}
-      </Link>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <SettingsIcon sx={{ fontSize: '1.1rem', color: 'primary.main' }} />
+        <Link
+          component="button"
+          variant="body2"
+          onClick={() => handleEditSetting(params.row)}
+          sx={{ textAlign: 'left', fontSize: '0.8rem' }}
+        >
+          {params.value}
+        </Link>
+      </Box>
     )
   },
   { field: 'description', headerName: 'Description', width: 450 },
@@ -206,17 +247,20 @@ const settingsColumns = (handleEditSetting: (setting: Settings) => void): GridCo
         value={params.value}
         exclusive
         size="small"
-        sx={{ height: '28px' }}
+        sx={{ height: '24px' }}
       >
         <ToggleButton 
           value="Active" 
           sx={{ 
-            px: 1.5, 
-            py: 0.5, 
-            fontSize: '0.75rem',
+            px: 1, 
+            fontSize: '0.7rem',
+            textTransform: 'none',
+            border: '1px solid',
+            borderColor: 'divider',
             '&.Mui-selected': {
               backgroundColor: 'success.main',
-              color: 'success.contrastText',
+              color: 'white',
+              borderColor: 'success.main',
               '&:hover': {
                 backgroundColor: 'success.dark',
               }
@@ -228,14 +272,17 @@ const settingsColumns = (handleEditSetting: (setting: Settings) => void): GridCo
         <ToggleButton 
           value="Inactive" 
           sx={{ 
-            px: 1.5, 
-            py: 0.5, 
-            fontSize: '0.75rem',
+            px: 1, 
+            fontSize: '0.7rem',
+            textTransform: 'none',
+            border: '1px solid',
+            borderColor: 'divider',
             '&.Mui-selected': {
-              backgroundColor: 'action.disabled',
-              color: 'text.primary',
+              backgroundColor: 'action.disabledBackground',
+              color: 'text.secondary',
+              borderColor: 'divider',
               '&:hover': {
-                backgroundColor: 'action.disabledBackground',
+                backgroundColor: 'action.hover',
               }
             }
           }}
@@ -243,6 +290,24 @@ const settingsColumns = (handleEditSetting: (setting: Settings) => void): GridCo
           Inactive
         </ToggleButton>
       </ToggleButtonGroup>
+    )
+  },
+  { 
+    field: 'actions', 
+    headerName: 'Actions', 
+    width: 80,
+    sortable: false,
+    renderCell: (params) => (
+      <IconButton
+        size="small"
+        onClick={(e) => {
+          e.stopPropagation();
+          params.row.handleMenuOpen(e, params.row);
+        }}
+        sx={{ color: 'text.secondary' }}
+      >
+        <MoreVertIcon fontSize="small" />
+      </IconButton>
     )
   }
 ];
@@ -253,51 +318,65 @@ const tabsColumns = (handleMoveTab: (tabId: string, direction: 'up' | 'down') =>
     headerName: 'Name', 
     width: 200,
     renderCell: (params) => (
-      <Link
-        component="button"
-        variant="body2"
-        onClick={() => handleEditTab(params.row)}
-        sx={{ textAlign: 'left', fontSize: '0.875rem' }}
-      >
-        {params.value}
-      </Link>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <TabIcon sx={{ fontSize: '1.1rem', color: 'info.main' }} />
+        <Link
+          component="button"
+          variant="body2"
+          onClick={() => handleEditTab(params.row)}
+          sx={{ textAlign: 'left', fontSize: '0.8rem' }}
+        >
+          {params.value}
+        </Link>
+      </Box>
     )
   },
   { field: 'description', headerName: 'Description', width: 450 },
   { field: 'key', headerName: 'Key', width: 150 },
   { 
     field: 'counts', 
-    headerName: 'Counts', 
+    headerName: 'Attributes', 
     width: 450,
     flex: 2,
     sortable: false,
     renderCell: (params) => {
       const row = params.row;
+      const settingsCount = Array.isArray(row.settings) ? row.settings.length : 0;
+      const slotsCount = Array.isArray(row.slots) ? row.slots.length : 0;
+      const cppsCount = Array.isArray(row.cpps) ? row.cpps.length : 0;
+      const exportZonesCount = Array.isArray(row.exportZones) ? row.exportZones.length : 0;
+      const presetsCount = Array.isArray(row.exportPresets) ? row.exportPresets.length : 0;
+      
       return (
         <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', py: 0.5 }}>
           <Chip
-            label={`Settings: ${Array.isArray(row.settings) ? row.settings.length : 0}`}
+            label={`Tab Settings: ${settingsCount}`}
             size="small"
+            color={settingsCount === 0 ? "default" : "error"}
             sx={{ fontSize: '0.7rem', height: '22px' }}
           />
           <Chip
-            label={`Slots: ${Array.isArray(row.slots) ? row.slots.length : 0}`}
+            label={`Audit Groups: ${slotsCount}`}
             size="small"
+            color={slotsCount === 0 ? "default" : "info"}
             sx={{ fontSize: '0.7rem', height: '22px' }}
           />
           <Chip
-            label={`CPPs: ${Array.isArray(row.cpps) ? row.cpps.length : 0}`}
+            label={`Audit Columns: ${cppsCount}`}
             size="small"
+            color={cppsCount === 0 ? "default" : "success"}
             sx={{ fontSize: '0.7rem', height: '22px' }}
           />
           <Chip
-            label={`Export Zones: ${Array.isArray(row.exportZones) ? row.exportZones.length : 0}`}
+            label={`Export Zones: ${exportZonesCount}`}
             size="small"
+            color={exportZonesCount === 0 ? "default" : "secondary"}
             sx={{ fontSize: '0.7rem', height: '22px' }}
           />
           <Chip
-            label={`Presets: ${Array.isArray(row.exportPresets) ? row.exportPresets.length : 0}`}
+            label={`Export Presets: ${presetsCount}`}
             size="small"
+            color={presetsCount === 0 ? "default" : "warning"}
             sx={{ fontSize: '0.7rem', height: '22px' }}
           />
         </Box>
@@ -374,17 +453,20 @@ const tabsColumns = (handleMoveTab: (tabId: string, direction: 'up' | 'down') =>
         value={params.value}
         exclusive
         size="small"
-        sx={{ height: '28px' }}
+        sx={{ height: '24px' }}
       >
         <ToggleButton 
           value="Active" 
           sx={{ 
-            px: 1.5, 
-            py: 0.5, 
-            fontSize: '0.75rem',
+            px: 1, 
+            fontSize: '0.7rem',
+            textTransform: 'none',
+            border: '1px solid',
+            borderColor: 'divider',
             '&.Mui-selected': {
               backgroundColor: 'success.main',
-              color: 'success.contrastText',
+              color: 'white',
+              borderColor: 'success.main',
               '&:hover': {
                 backgroundColor: 'success.dark',
               }
@@ -396,14 +478,17 @@ const tabsColumns = (handleMoveTab: (tabId: string, direction: 'up' | 'down') =>
         <ToggleButton 
           value="Inactive" 
           sx={{ 
-            px: 1.5, 
-            py: 0.5, 
-            fontSize: '0.75rem',
+            px: 1, 
+            fontSize: '0.7rem',
+            textTransform: 'none',
+            border: '1px solid',
+            borderColor: 'divider',
             '&.Mui-selected': {
-              backgroundColor: 'action.disabled',
-              color: 'text.primary',
+              backgroundColor: 'action.disabledBackground',
+              color: 'text.secondary',
+              borderColor: 'divider',
               '&:hover': {
-                backgroundColor: 'action.disabledBackground',
+                backgroundColor: 'action.hover',
               }
             }
           }}
@@ -411,6 +496,24 @@ const tabsColumns = (handleMoveTab: (tabId: string, direction: 'up' | 'down') =>
           Inactive
         </ToggleButton>
       </ToggleButtonGroup>
+    )
+  },
+  { 
+    field: 'actions', 
+    headerName: 'Actions', 
+    width: 80,
+    sortable: false,
+    renderCell: (params) => (
+      <IconButton
+        size="small"
+        onClick={(e) => {
+          e.stopPropagation();
+          params.row.handleMenuOpen(e, params.row);
+        }}
+        sx={{ color: 'text.secondary' }}
+      >
+        <MoreVertIcon fontSize="small" />
+      </IconButton>
     )
   }
 ];
@@ -422,6 +525,50 @@ export default function SingleAppForm({ app, onSave, allApps = [] }: SingleAppFo
   const [editingDataCheck, setEditingDataCheck] = useState<DataCheck | null>(null);
   const [editingTabOpen, setEditingTabOpen] = useState(false);
   const [editingTab, setEditingTab] = useState<Tab | null>(null);
+  
+  // Menu state for all three DataGrids
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [menuType, setMenuType] = useState<'dataCheck' | 'setting' | 'tab' | null>(null);
+
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, item: any, type: 'dataCheck' | 'setting' | 'tab') => {
+    setAnchorEl(event.currentTarget);
+    setSelectedItem(item);
+    setMenuType(type);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setSelectedItem(null);
+    setMenuType(null);
+  };
+
+  const handleMenuEdit = () => {
+    if (selectedItem && menuType === 'dataCheck') {
+      handleEditDataCheck(selectedItem);
+    } else if (selectedItem && menuType === 'setting') {
+      handleEditSetting(selectedItem);
+    } else if (selectedItem && menuType === 'tab') {
+      handleEditTab(selectedItem);
+    }
+    handleMenuClose();
+  };
+
+  const handleMenuCopy = () => {
+    if (selectedItem) {
+      console.log('Copy', menuType, ':', selectedItem);
+      // TODO: Implement copy functionality
+    }
+    handleMenuClose();
+  };
+
+  const handleMenuDelete = () => {
+    if (selectedItem) {
+      console.log('Delete', menuType, ':', selectedItem);
+      // TODO: Implement delete functionality
+    }
+    handleMenuClose();
+  };
 
   const handleMoveDataCheck = (dataCheckId: string, direction: 'up' | 'down') => {
     const currentIndex = app.dataChecks.findIndex(dc => dc.id === dataCheckId);
@@ -535,19 +682,21 @@ export default function SingleAppForm({ app, onSave, allApps = [] }: SingleAppFo
 
   return (
     <>
-    <Box sx={{ 
-      border: '1px solid', 
-      borderColor: 'grey.300', 
-      borderRadius: 1, 
-      p: 2 
-    }}>
-      <Box sx={{ mb: 2 }}>
-        <Typography variant="h6">
-          App Information
-        </Typography>
-      </Box>
-
-        <Formik
+    <Box sx={{ mt: 3 }}>
+      <Card elevation={0} sx={{ border: '1px solid', borderColor: 'grey.300', borderRadius: 1 }}>
+        <CardHeader 
+          title="App Information" 
+          sx={{ 
+            '& .MuiCardHeader-title': { 
+              fontSize: '1rem',
+              fontWeight: 500 
+            },
+            pb: 2,
+            px: 2
+          }} 
+        />
+        <CardContent sx={{ pt: 0, px: 2 }}>
+          <Formik
           initialValues={app}
           validationSchema={singleAppValidationSchema}
           onSubmit={handleSubmit}
@@ -595,7 +744,7 @@ export default function SingleAppForm({ app, onSave, allApps = [] }: SingleAppFo
                         sx={{ 
                           '& .MuiInputBase-root': { fontSize: '0.875rem' },
                           '& .MuiInputLabel-root': { fontSize: '0.875rem' },
-                          '& .MuiFormHelperText-root': { fontSize: '0.8rem' }
+                          '& .MuiFormHelperText-root': { fontSize: '0.7rem' }
                         }}
                         onChange={(e) => {
                           const value = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
@@ -668,6 +817,8 @@ export default function SingleAppForm({ app, onSave, allApps = [] }: SingleAppFo
             </Form>
           )}
         </Formik>
+        </CardContent>
+      </Card>
     </Box>
 
     {/* Settings Card */}
@@ -701,16 +852,19 @@ export default function SingleAppForm({ app, onSave, allApps = [] }: SingleAppFo
         />
         <CardContent sx={{ pt: 0, px: 2 }}>
           <DataGrid
-            rows={app.settings || []}
+            rows={(app.settings || []).map(s => ({
+              ...s,
+              handleMenuOpen: (e: React.MouseEvent<HTMLElement>, item: any) => handleMenuOpen(e, item, 'setting')
+            }))}
             columns={settingsColumns(handleEditSetting)}
             autoHeight
             density="compact"
             disableRowSelectionOnClick
             pageSizeOptions={[5, 10]}
             sx={{
-              fontSize: '0.875rem',
+              fontSize: '0.8rem',
               '& .MuiDataGrid-columnHeaders': {
-                fontSize: '0.875rem',
+                fontSize: '0.8rem',
               },
             }}
             initialState={{
@@ -754,16 +908,19 @@ export default function SingleAppForm({ app, onSave, allApps = [] }: SingleAppFo
         />
         <CardContent sx={{ pt: 0, px: 2 }}>
           <DataGrid
-            rows={[...(app.dataChecks || [])].sort((a, b) => a.sortOrder - b.sortOrder)}
+            rows={[...(app.dataChecks || [])].sort((a, b) => a.sortOrder - b.sortOrder).map(dc => ({
+              ...dc,
+              handleMenuOpen: (e: React.MouseEvent<HTMLElement>, item: any) => handleMenuOpen(e, item, 'dataCheck')
+            }))}
             columns={dataChecksColumns(handleEditDataCheck, handleMoveDataCheck)}
             autoHeight
             density="compact"
             disableRowSelectionOnClick
             pageSizeOptions={[5, 10]}
             sx={{
-              fontSize: '0.875rem',
+              fontSize: '0.8rem',
               '& .MuiDataGrid-columnHeaders': {
-                fontSize: '0.875rem',
+                fontSize: '0.8rem',
               },
             }}
             initialState={{
@@ -807,16 +964,23 @@ export default function SingleAppForm({ app, onSave, allApps = [] }: SingleAppFo
         />
         <CardContent sx={{ pt: 0, px: 2 }}>
           <DataGrid
-            rows={[...(app.tabs || [])].sort((a, b) => a.sortOrder - b.sortOrder)}
+            rows={[...(app.tabs || [])].sort((a, b) => a.sortOrder - b.sortOrder).map(t => ({
+              ...t,
+              handleMenuOpen: (e: React.MouseEvent<HTMLElement>, item: any) => handleMenuOpen(e, item, 'tab')
+            }))}
             columns={tabsColumns(handleMoveTab, handleEditTab)}
             autoHeight
-            density="compact"
+            getRowHeight={() => 'auto'}
             disableRowSelectionOnClick
             pageSizeOptions={[5, 10]}
             sx={{
-              fontSize: '0.875rem',
+              fontSize: '0.8rem',
               '& .MuiDataGrid-columnHeaders': {
-                fontSize: '0.875rem',
+                fontSize: '0.8rem',
+              },
+              '& .MuiDataGrid-cell': {
+                py: 1,
+                alignItems: 'flex-start',
               },
             }}
             initialState={{
@@ -1307,6 +1471,32 @@ export default function SingleAppForm({ app, onSave, allApps = [] }: SingleAppFo
         )}
       </DialogContent>
     </Dialog>
+
+    {/* Actions Menu */}
+    <Menu
+      anchorEl={anchorEl}
+      open={Boolean(anchorEl)}
+      onClose={handleMenuClose}
+    >
+      <MenuItem onClick={handleMenuEdit}>
+        <ListItemIcon>
+          <EditIcon fontSize="small" />
+        </ListItemIcon>
+        <ListItemText>Edit</ListItemText>
+      </MenuItem>
+      <MenuItem onClick={handleMenuCopy}>
+        <ListItemIcon>
+          <ContentCopyIcon fontSize="small" />
+        </ListItemIcon>
+        <ListItemText>Copy</ListItemText>
+      </MenuItem>
+      <MenuItem onClick={handleMenuDelete}>
+        <ListItemIcon>
+          <DeleteIcon fontSize="small" />
+        </ListItemIcon>
+        <ListItemText>Delete</ListItemText>
+      </MenuItem>
+    </Menu>
     </>
   );
 }

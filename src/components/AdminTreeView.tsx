@@ -189,7 +189,7 @@ function buildTreeData(data: AdminData): TreeNode[] {
     if (app.tabs.length > 0) {
       const tabsNode: TreeNode = {
         id: `app-${app.id}-tabs`,
-        label: `Tabs (${app.tabs.length})`,
+        label: `Projects (${app.tabs.length})`,
         nodeType: 'tabs',
         appId: app.id,
         data: { tabs: app.tabs },

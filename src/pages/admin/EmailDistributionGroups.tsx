@@ -25,7 +25,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogContentText,
-  DialogActions
+  DialogActions,
+  IconButton
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import GroupIcon from '@mui/icons-material/Group';
@@ -34,6 +35,7 @@ import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import SaveIcon from '@mui/icons-material/Save';
 import DeleteIcon from '@mui/icons-material/Delete';
+import CloseIcon from '@mui/icons-material/Close';
 import { DataGrid, GridColDef, GridRowSelectionModel } from '@mui/x-data-grid';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
@@ -263,10 +265,17 @@ const EmailDistributionGroups: React.FC = () => {
       memberSource: 'custom' as 'p6' | 'custom'
     },
     validationSchema: Yup.object({
-      firstName: Yup.string().required('First name is required'),
-      lastName: Yup.string().required('Last name is required'),
-      email: Yup.string().email('Invalid email').required('Email is required'),
-      memberRole: Yup.string().required('Role is required')
+      firstName: Yup.string()
+        .required('First name is required')
+        .matches(/^[a-zA-Z0-9'\-.\s]+$/, "Only alphanumeric characters, apostrophes, hyphens, periods, and spaces allowed"),
+      lastName: Yup.string()
+        .required('Last name is required')
+        .matches(/^[a-zA-Z0-9'\-.\s]+$/, "Only alphanumeric characters, apostrophes, hyphens, periods, and spaces allowed"),
+      email: Yup.string()
+        .email('Invalid email')
+        .required('Email is required'),
+      memberRole: Yup.string()
+        .required('Role is required')
     }),
     onSubmit: async (values) => {
       try {
@@ -289,6 +298,39 @@ const EmailDistributionGroups: React.FC = () => {
         
         db.members.push(newMember);
         
+        // If there's a selected group, add the new member to it
+        if (selectedGroupId && selectedGroup) {
+          const groupIndex = db.distributionGroups.findIndex((g: any) => g.id === Number(selectedGroupId));
+          if (groupIndex !== -1) {
+            if (!db.distributionGroups[groupIndex].members) {
+              db.distributionGroups[groupIndex].members = [];
+            }
+            db.distributionGroups[groupIndex].members.push(newMemberId);
+            db.distributionGroups[groupIndex].memberCount = db.distributionGroups[groupIndex].members.length;
+          }
+          
+          // Add the new member to the projectMembers mapping for the selected group's project
+          if (selectedGroup.project) {
+            if (!db.projectMembers) {
+              db.projectMembers = [];
+            }
+            // Generate new projectMember ID
+            const maxProjectMemberId = db.projectMembers.length > 0 
+              ? Math.max(...db.projectMembers.map((pm: any) => {
+                  const id = pm.id;
+                  return typeof id === 'string' ? parseInt(id.replace('pm', '')) : 0;
+                }))
+              : 0;
+            const newProjectMemberId = `pm${maxProjectMemberId + 1}`;
+            
+            db.projectMembers.push({
+              id: newProjectMemberId,
+              project: selectedGroup.project,
+              memberId: newMemberId
+            });
+          }
+        }
+        
         const saveResponse = await fetch('/api/save-database', {
           method: 'POST',
           headers: {
@@ -300,7 +342,39 @@ const EmailDistributionGroups: React.FC = () => {
         const saveResult = await saveResponse.json();
         if (saveResult.success) {
           console.log('New member created successfully');
-          setAllMembers([...allMembers, newMember as DistributionGroupMember]);
+          
+          // Update allMembers state
+          const newMemberWithType = newMember as DistributionGroupMember;
+          setAllMembers([...allMembers, newMemberWithType]);
+          
+          // Update projectMembers state if a group with a project is selected
+          if (selectedGroupId && selectedGroup && selectedGroup.project) {
+            const maxProjectMemberId = projectMembers.length > 0 
+              ? Math.max(...projectMembers.map((pm: any) => {
+                  const id = pm.id;
+                  return typeof id === 'string' ? parseInt(id.replace('pm', '')) : 0;
+                }))
+              : 0;
+            const newProjectMemberId = `pm${maxProjectMemberId + 1}`;
+            
+            setProjectMembers([...projectMembers, {
+              id: newProjectMemberId,
+              project: selectedGroup.project,
+              memberId: newMemberId
+            }]);
+          }
+          
+          // Update local group state to include the new member
+          if (selectedGroupId && selectedGroup) {
+            const updatedGroups = groups.map(g => 
+              g.id === selectedGroupId 
+                ? { ...g, members: [...g.members, newMemberWithType] }
+                : g
+            );
+            setGroups(updatedGroups);
+            setSelectedRows([...selectedRows, newMemberId]);
+          }
+          
           setNewMemberDialogOpen(false);
           newMemberFormik.resetForm();
         } else {
@@ -1081,9 +1155,27 @@ const EmailDistributionGroups: React.FC = () => {
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Add New Member</DialogTitle>
+        <DialogTitle
+          sx={{
+            bgcolor: 'primary.main',
+            color: 'white',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            py: 0.5
+          }}
+        >
+          Add New Member
+          <IconButton
+            onClick={() => setNewMemberDialogOpen(false)}
+            sx={{ color: 'white' }}
+            size="small"
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
         <DialogContent>
-          <Box component="form" onSubmit={newMemberFormik.handleSubmit} sx={{ pt: 2 }}>
+          <Box component="form" onSubmit={newMemberFormik.handleSubmit} sx={{ pt: 4 }}>
             <Grid container spacing={2}>
               <Grid item xs={6}>
                 <TextField
@@ -1091,10 +1183,17 @@ const EmailDistributionGroups: React.FC = () => {
                   size="small"
                   label="First Name"
                   name="firstName"
+                  required
                   value={newMemberFormik.values.firstName}
                   onChange={newMemberFormik.handleChange}
+                  onBlur={newMemberFormik.handleBlur}
                   error={newMemberFormik.touched.firstName && Boolean(newMemberFormik.errors.firstName)}
                   helperText={newMemberFormik.touched.firstName && newMemberFormik.errors.firstName}
+                  sx={{
+                    '& .MuiInputBase-input': { fontSize: '0.75rem' },
+                    '& .MuiInputLabel-root': { fontSize: '0.75rem' },
+                    '& .MuiFormHelperText-root': { fontSize: '0.65rem' }
+                  }}
                 />
               </Grid>
               <Grid item xs={6}>
@@ -1103,10 +1202,17 @@ const EmailDistributionGroups: React.FC = () => {
                   size="small"
                   label="Last Name"
                   name="lastName"
+                  required
                   value={newMemberFormik.values.lastName}
                   onChange={newMemberFormik.handleChange}
+                  onBlur={newMemberFormik.handleBlur}
                   error={newMemberFormik.touched.lastName && Boolean(newMemberFormik.errors.lastName)}
                   helperText={newMemberFormik.touched.lastName && newMemberFormik.errors.lastName}
+                  sx={{
+                    '& .MuiInputBase-input': { fontSize: '0.75rem' },
+                    '& .MuiInputLabel-root': { fontSize: '0.75rem' },
+                    '& .MuiFormHelperText-root': { fontSize: '0.65rem' }
+                  }}
                 />
               </Grid>
               <Grid item xs={12}>
@@ -1116,20 +1222,37 @@ const EmailDistributionGroups: React.FC = () => {
                   label="Email"
                   name="email"
                   type="email"
+                  required
                   value={newMemberFormik.values.email}
                   onChange={newMemberFormik.handleChange}
+                  onBlur={newMemberFormik.handleBlur}
                   error={newMemberFormik.touched.email && Boolean(newMemberFormik.errors.email)}
                   helperText={newMemberFormik.touched.email && newMemberFormik.errors.email}
+                  sx={{
+                    '& .MuiInputBase-input': { fontSize: '0.75rem' },
+                    '& .MuiInputLabel-root': { fontSize: '0.75rem' },
+                    '& .MuiFormHelperText-root': { fontSize: '0.65rem' }
+                  }}
                 />
               </Grid>
               <Grid item xs={12}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Role</InputLabel>
+                <FormControl fullWidth size="small" required>
+                  <InputLabel sx={{ fontSize: '0.75rem' }}>Role</InputLabel>
                   <Select
                     name="memberRole"
                     value={newMemberFormik.values.memberRole}
                     onChange={newMemberFormik.handleChange}
+                    onBlur={newMemberFormik.handleBlur}
                     label="Role"
+                    error={newMemberFormik.touched.memberRole && Boolean(newMemberFormik.errors.memberRole)}
+                    sx={{ fontSize: '0.75rem' }}
+                    MenuProps={{
+                      PaperProps: {
+                        sx: {
+                          '& .MuiMenuItem-root': { fontSize: '0.75rem' }
+                        }
+                      }
+                    }}
                   >
                     <MenuItem value="Manager">Manager</MenuItem>
                     <MenuItem value="Project Lead">Project Lead</MenuItem>
@@ -1140,7 +1263,7 @@ const EmailDistributionGroups: React.FC = () => {
             </Grid>
           </Box>
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setNewMemberDialogOpen(false)}>Cancel</Button>
           <Button onClick={() => newMemberFormik.handleSubmit()} variant="contained" color="primary">
             Create Member

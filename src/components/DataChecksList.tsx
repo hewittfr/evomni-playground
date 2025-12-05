@@ -15,13 +15,19 @@ import {
   FormControlLabel,
   Switch,
   ToggleButton,
-  ToggleButtonGroup
+  ToggleButtonGroup,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText
 } from '@mui/material';
 import { 
   ArrowUpward as ArrowUpwardIcon,
   ArrowDownward as ArrowDownwardIcon,
   Edit as EditIcon,
-  Delete as DeleteIcon
+  Delete as DeleteIcon,
+  MoreVert as MoreVertIcon,
+  ContentCopy as ContentCopyIcon
 } from '@mui/icons-material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Formik, Form, Field } from 'formik';
@@ -200,49 +206,19 @@ const dataChecksColumns = (
   { 
     field: 'actions', 
     headerName: 'Actions', 
-    width: 120,
+    width: 80,
     sortable: false,
     renderCell: (params) => (
-      <Box sx={{ display: 'flex', gap: 0.5 }}>
-        <IconButton
-          size="small"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleEditDataCheck(params.row);
-          }}
-          sx={{ 
-            p: 0.5,
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: 1,
-            '&:hover': {
-              backgroundColor: 'action.hover',
-              borderColor: 'primary.main',
-            }
-          }}
-        >
-          <EditIcon sx={{ fontSize: '1rem' }} />
-        </IconButton>
-        <IconButton
-          size="small"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleDeleteDataCheck(params.row);
-          }}
-          sx={{ 
-            p: 0.5,
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: 1,
-            '&:hover': {
-              backgroundColor: 'action.hover',
-              borderColor: 'error.main',
-            }
-          }}
-        >
-          <DeleteIcon sx={{ fontSize: '1rem', color: 'error.main' }} />
-        </IconButton>
-      </Box>
+      <IconButton
+        size="small"
+        onClick={(e) => {
+          e.stopPropagation();
+          params.row.handleMenuOpen(e, params.row);
+        }}
+        sx={{ color: 'text.secondary' }}
+      >
+        <MoreVertIcon fontSize="small" />
+      </IconButton>
     )
   }
 ];
@@ -254,6 +230,40 @@ export default function DataChecksList({ dataChecks, onSave, readOnly = false, s
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [dataCheckToDelete, setDataCheckToDelete] = useState<DataCheck | null>(null);
   const [newDataCheckOpen, setNewDataCheckOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [selectedDataCheck, setSelectedDataCheck] = useState<DataCheck | null>(null);
+
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, dataCheck: DataCheck) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedDataCheck(dataCheck);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setSelectedDataCheck(null);
+  };
+
+  const handleMenuEdit = () => {
+    if (selectedDataCheck) {
+      handleEditDataCheck(selectedDataCheck);
+    }
+    handleMenuClose();
+  };
+
+  const handleMenuCopy = () => {
+    if (selectedDataCheck) {
+      console.log('Copy data check:', selectedDataCheck);
+      // TODO: Implement copy functionality
+    }
+    handleMenuClose();
+  };
+
+  const handleMenuDelete = () => {
+    if (selectedDataCheck) {
+      handleDeleteDataCheck(selectedDataCheck);
+    }
+    handleMenuClose();
+  };
 
   React.useEffect(() => {
     setLocalDataChecks(dataChecks);
@@ -364,11 +374,15 @@ export default function DataChecksList({ dataChecks, onSave, readOnly = false, s
   };
 
   const sortedDataChecks = [...localDataChecks].sort((a, b) => a.sortOrder - b.sortOrder);
+  const rowsWithMenuHandler = sortedDataChecks.map(dc => ({
+    ...dc,
+    handleMenuOpen
+  }));
 
   return (
     <Box>
       <DataGrid
-        rows={sortedDataChecks}
+        rows={rowsWithMenuHandler}
         columns={dataChecksColumns(handleEditDataCheck, handleMoveDataCheck, handleDeleteDataCheck, handleToggleStatus, readOnly)}
         autoHeight
         density="compact"
@@ -659,6 +673,32 @@ export default function DataChecksList({ dataChecks, onSave, readOnly = false, s
           )}
         </Formik>
       </Dialog>
+
+      {/* Actions Menu */}
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+      >
+        <MenuItem onClick={handleMenuEdit}>
+          <ListItemIcon>
+            <EditIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Edit</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={handleMenuCopy}>
+          <ListItemIcon>
+            <ContentCopyIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Copy</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={handleMenuDelete}>
+          <ListItemIcon>
+            <DeleteIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Delete</ListItemText>
+        </MenuItem>
+      </Menu>
     </Box>
   );
 }

@@ -142,9 +142,43 @@ export const dataService = {
   // Get admin data (combined for admin page)
   async getAdminData() {
     const db = await getDatabase();
+    
+    // Build nested app structure
+    const apps = (db.apps || []).map((app: any, index: number) => {
+      // Get tabs for this app using appId
+      const appTabs = (db.tabs || [])
+        .filter((tab: any) => tab.appId === app.id)
+        .map((tab: any) => ({
+          ...tab,
+          tabSettings: (db.tabSettings || []).filter((ts: any) => ts.tabId === tab.id),
+          slots: (db.slots || [])
+            .filter((slot: any) => slot.tabId === tab.id)
+            .map((slot: any) => ({
+              ...slot,
+              dataChecks: (db.dataChecks || []).filter((dc: any) => dc.slotId === slot.id),
+              exportZones: (db.exportZones || []).filter((ez: any) => ez.slotId === slot.id),
+              exportPresets: (db.exportPresets || []).filter((ep: any) => ep.slotId === slot.id)
+            }))
+        }));
+      
+      // Distribute dataChecks across apps (10 per app) - since they don't have appId
+      const startIdx = index * 10;
+      const appDataChecks = (db.dataChecks || []).slice(startIdx, startIdx + 10);
+      
+      // Distribute settings across apps - since they don't have appId
+      const appSettings = (db.settings || []).filter((_: any, i: number) => i % (db.apps.length || 1) === index);
+      
+      return {
+        ...app,
+        dataChecks: appDataChecks,
+        settings: appSettings,
+        tabs: appTabs
+      };
+    });
+    
     return {
-      apps: db.apps || [],
-      globalExportZones: db.exportZones || [],
+      apps,
+      globalExportZones: (db.exportZones || []).filter((ez: any) => !ez.slotId),
       eventJobs: db.eventJobs || [],
       settings: db.settings || [],
       dataChecks: db.dataChecks || [],

@@ -15,13 +15,19 @@ import {
   FormControlLabel,
   Switch,
   ToggleButton,
-  ToggleButtonGroup
+  ToggleButtonGroup,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText
 } from '@mui/material';
 import { 
   ArrowUpward as ArrowUpwardIcon,
   ArrowDownward as ArrowDownwardIcon,
   Edit as EditIcon,
-  Delete as DeleteIcon
+  Delete as DeleteIcon,
+  MoreVert as MoreVertIcon,
+  ContentCopy as ContentCopyIcon
 } from '@mui/icons-material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Formik, Form, Field } from 'formik';
@@ -138,49 +144,19 @@ const settingsColumns = (
   { 
     field: 'actions', 
     headerName: 'Actions', 
-    width: 120,
+    width: 80,
     sortable: false,
     renderCell: (params) => (
-      <Box sx={{ display: 'flex', gap: 0.5 }}>
-        <IconButton
-          size="small"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleEditSetting(params.row);
-          }}
-          sx={{ 
-            p: 0.5,
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: 1,
-            '&:hover': {
-              backgroundColor: 'action.hover',
-              borderColor: 'primary.main',
-            }
-          }}
-        >
-          <EditIcon sx={{ fontSize: '1rem' }} />
-        </IconButton>
-        <IconButton
-          size="small"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleDeleteSetting(params.row);
-          }}
-          sx={{ 
-            p: 0.5,
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: 1,
-            '&:hover': {
-              backgroundColor: 'action.hover',
-              borderColor: 'error.main',
-            }
-          }}
-        >
-          <DeleteIcon sx={{ fontSize: '1rem', color: 'error.main' }} />
-        </IconButton>
-      </Box>
+      <IconButton
+        size="small"
+        onClick={(e) => {
+          e.stopPropagation();
+          params.row.handleMenuOpen(e, params.row);
+        }}
+        sx={{ color: 'text.secondary' }}
+      >
+        <MoreVertIcon fontSize="small" />
+      </IconButton>
     )
   }
 ];
@@ -192,6 +168,40 @@ export default function SettingsList({ settings, onSave, readOnly = false, showN
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [settingToDelete, setSettingToDelete] = useState<Settings | null>(null);
   const [newSettingOpen, setNewSettingOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [selectedSetting, setSelectedSetting] = useState<Settings | null>(null);
+
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, setting: Settings) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedSetting(setting);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setSelectedSetting(null);
+  };
+
+  const handleMenuEdit = () => {
+    if (selectedSetting) {
+      handleEditSetting(selectedSetting);
+    }
+    handleMenuClose();
+  };
+
+  const handleMenuCopy = () => {
+    if (selectedSetting) {
+      console.log('Copy setting:', selectedSetting);
+      // TODO: Implement copy functionality
+    }
+    handleMenuClose();
+  };
+
+  const handleMenuDelete = () => {
+    if (selectedSetting) {
+      handleDeleteSetting(selectedSetting);
+    }
+    handleMenuClose();
+  };
 
   React.useEffect(() => {
     setLocalSettings(settings);
@@ -275,10 +285,15 @@ export default function SettingsList({ settings, onSave, readOnly = false, showN
     }
   };
 
+  const rowsWithMenuHandler = localSettings.map(s => ({
+    ...s,
+    handleMenuOpen
+  }));
+
   return (
     <Box>
       <DataGrid
-        rows={localSettings}
+        rows={rowsWithMenuHandler}
         columns={settingsColumns(handleEditSetting, handleDeleteSetting, handleToggleStatus, readOnly)}
         autoHeight
         disableRowSelectionOnClick
@@ -577,6 +592,32 @@ export default function SettingsList({ settings, onSave, readOnly = false, showN
           )}
         </Formik>
       </Dialog>
+
+      {/* Actions Menu */}
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+      >
+        <MenuItem onClick={handleMenuEdit}>
+          <ListItemIcon>
+            <EditIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Edit</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={handleMenuCopy}>
+          <ListItemIcon>
+            <ContentCopyIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Copy</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={handleMenuDelete}>
+          <ListItemIcon>
+            <DeleteIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Delete</ListItemText>
+        </MenuItem>
+      </Menu>
     </Box>
   );
 }

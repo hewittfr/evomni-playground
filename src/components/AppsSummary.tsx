@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Card, CardContent, Typography, Box, IconButton, ToggleButtonGroup, ToggleButton, Link } from '@mui/material';
+import { Card, CardContent, Typography, Box, IconButton, ToggleButtonGroup, ToggleButton, Link, Menu, MenuItem, ListItemIcon, ListItemText } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { Edit as EditIcon, Delete as DeleteIcon, FileCopy as CopyIcon } from '@mui/icons-material';
+import { Edit as EditIcon, Delete as DeleteIcon, FileCopy as CopyIcon, MoreVert as MoreVertIcon, ContentCopy as ContentCopyIcon } from '@mui/icons-material';
 
 interface AppsSummaryProps {
   data: any;
@@ -10,6 +10,39 @@ interface AppsSummaryProps {
 export default function AppsSummary({ data }: AppsSummaryProps) {
   const apps = data.apps || [];
   const [localApps, setLocalApps] = useState(apps);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [selectedApp, setSelectedApp] = useState<any>(null);
+
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, app: any) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedApp(app);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setSelectedApp(null);
+  };
+
+  const handleMenuEdit = () => {
+    if (selectedApp) {
+      handleEdit(selectedApp.id);
+    }
+    handleMenuClose();
+  };
+
+  const handleMenuCopy = () => {
+    if (selectedApp) {
+      handleCopy(selectedApp.id);
+    }
+    handleMenuClose();
+  };
+
+  const handleMenuDelete = () => {
+    if (selectedApp) {
+      handleDelete(selectedApp.id);
+    }
+    handleMenuClose();
+  };
 
   const handleToggleStatus = (appId: string) => {
     setLocalApps((prev: any[]) => prev.map(app => 
@@ -157,68 +190,19 @@ export default function AppsSummary({ data }: AppsSummaryProps) {
     { 
       field: 'actions', 
       headerName: 'Actions', 
-      width: 140,
+      width: 80,
       sortable: false,
       renderCell: (params) => (
-        <Box sx={{ display: 'flex', gap: 0.5 }}>
-          <IconButton
-            size="small"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleEdit(params.row.id);
-            }}
-            sx={{ 
-              p: 0.5,
-              border: '1px solid',
-              borderColor: 'divider',
-              borderRadius: 1,
-              '&:hover': {
-                backgroundColor: 'action.hover',
-                borderColor: 'primary.main',
-              }
-            }}
-          >
-            <EditIcon sx={{ fontSize: '1rem' }} />
-          </IconButton>
-          <IconButton
-            size="small"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleCopy(params.row.id);
-            }}
-            sx={{ 
-              p: 0.5,
-              border: '1px solid',
-              borderColor: 'divider',
-              borderRadius: 1,
-              '&:hover': {
-                backgroundColor: 'action.hover',
-                borderColor: 'info.main',
-              }
-            }}
-          >
-            <CopyIcon sx={{ fontSize: '1rem' }} />
-          </IconButton>
-          <IconButton
-            size="small"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleDelete(params.row.id);
-            }}
-            sx={{ 
-              p: 0.5,
-              border: '1px solid',
-              borderColor: 'divider',
-              borderRadius: 1,
-              '&:hover': {
-                backgroundColor: 'action.hover',
-                borderColor: 'error.main',
-              }
-            }}
-          >
-            <DeleteIcon sx={{ fontSize: '1rem', color: 'error.main' }} />
-          </IconButton>
-        </Box>
+        <IconButton
+          size="small"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleMenuOpen(e, params.row);
+          }}
+          sx={{ color: 'text.secondary' }}
+        >
+          <MoreVertIcon fontSize="small" />
+        </IconButton>
       )
     }
   ];
@@ -245,6 +229,32 @@ export default function AppsSummary({ data }: AppsSummaryProps) {
             }
           }}
         />
+        
+        {/* Actions Menu */}
+        <Menu
+          anchorEl={anchorEl}
+          open={Boolean(anchorEl)}
+          onClose={handleMenuClose}
+        >
+          <MenuItem onClick={handleMenuEdit}>
+            <ListItemIcon>
+              <EditIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Edit</ListItemText>
+          </MenuItem>
+          <MenuItem onClick={handleMenuCopy}>
+            <ListItemIcon>
+              <ContentCopyIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Copy</ListItemText>
+          </MenuItem>
+          <MenuItem onClick={handleMenuDelete}>
+            <ListItemIcon>
+              <DeleteIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Delete</ListItemText>
+          </MenuItem>
+        </Menu>
       </CardContent>
     </Card>
   );
