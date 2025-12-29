@@ -8,18 +8,12 @@
     "node": ">=20.19"
   },
   "scripts": {
-    "react-dev": "vite",
-    "dev:all": "node ./scripts/dev-all.js",
-    "dev": "node ./scripts/dev-all.js",
+    "dev": "vite",
     "build": "vite build",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d build",
-    "electron:prod": "cross-env NODE_ENV=production electron .",
-    "start:prod": "npm run build && npm run electron:prod",
     "preview": "vite preview --port 5173",
-    "dev:api": "cd mock-api-dotnet && EVOMNI_DEV=1 dotnet run",
-    "electron:dev": "cross-env NODE_ENV=development electron .",
-    "start": "node ./scripts/dev-all.js"
+    "start": "vite"
   },
   "dependencies": {
     "@emotion/cache": "^11.14.0",

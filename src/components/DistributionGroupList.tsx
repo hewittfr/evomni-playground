@@ -114,7 +114,7 @@ const DistributionGroupList: React.FC<DistributionGroupListProps> = ({
                 secondary={
                   <Typography variant="caption" color="text.secondary">
                     {group.project && `${group.project} - `}
-                    {group.members.length} member{group.members.length !== 1 ? 's' : ''}
+                    {group.members?.length || 0} member{(group.members?.length || 0) !== 1 ? 's' : ''}
                   </Typography>
                 }
               />

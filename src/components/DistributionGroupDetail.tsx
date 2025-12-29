@@ -19,9 +19,11 @@ import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import SaveIcon from '@mui/icons-material/Save';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { DataGrid, GridColDef, GridRowSelectionModel } from '@mui/x-data-grid';
+import { DataGrid, GridColDef, GridRowSelectionModel, GridSortModel } from '@mui/x-data-grid';
 import { FormikProps } from 'formik';
 import { Chip } from '@mui/material';
+
+const SORT_MODEL_STORAGE_KEY = 'evomni_member_grid_sort';
 
 interface DistributionGroupMember {
   id: string;
@@ -90,6 +92,33 @@ const DistributionGroupDetail: React.FC<DistributionGroupDetailProps> = ({
   setMemberFilter,
   setNewMemberDialogOpen
 }) => {
+  // Load saved sort model from localStorage
+  const getSavedSortModel = (): GridSortModel => {
+    try {
+      const saved = localStorage.getItem(SORT_MODEL_STORAGE_KEY);
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (error) {
+      console.error('Error loading sort model:', error);
+    }
+    // Default sort
+    return [{ field: 'memberRole', sort: 'asc' }];
+  };
+
+  const [sortModel, setSortModel] = React.useState<GridSortModel>(getSavedSortModel());
+
+  // Save sort model to localStorage whenever it changes
+  const handleSortModelChange = (newSortModel: GridSortModel) => {
+    setSortModel(newSortModel);
+    try {
+      localStorage.setItem(SORT_MODEL_STORAGE_KEY, JSON.stringify(newSortModel));
+      console.log('💾 Saved sort model:', newSortModel);
+    } catch (error) {
+      console.error('Error saving sort model:', error);
+    }
+  };
+
   if (!selectedGroup && selectedGroupId !== null) {
     return (
       <Box sx={{ p: 3, textAlign: 'center' }}>
@@ -431,12 +460,9 @@ const DistributionGroupDetail: React.FC<DistributionGroupDetailProps> = ({
               pagination
               rowSelectionModel={selectedRows}
               onRowSelectionModelChange={handleMemberSelectionChange}
+              sortModel={sortModel}
+              onSortModelChange={handleSortModelChange}
               initialState={{
-                sorting: {
-                  sortModel: [
-                    { field: 'memberRole', sort: 'asc' }
-                  ]
-                },
                 pagination: {
                   paginationModel: { pageSize: 20 }
                 }

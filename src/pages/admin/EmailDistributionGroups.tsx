@@ -81,65 +81,73 @@ const EmailDistributionGroups: React.FC = () => {
 
   const selectedGroup = groups.find(g => g.id === selectedGroupId);
 
+  // Extract loadData as a reusable function
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch distribution groups
+      const distributionGroups = await dataService.getDistributionGroups();
+      console.log('📥 Loaded distribution groups from localStorage:', distributionGroups);
+      
+      // Fetch all members
+      const members = await dataService.getMembers();
+      setAllMembers(members);
+      
+      // Fetch project members mapping
+      const projMembers = await dataService.getProjectMembers();
+      setProjectMembers(projMembers);
+      
+      // Build groups with members included from the group.members array
+      const groupsWithMembers: DistributionGroup[] = distributionGroups.map((group: any) => {
+        const groupMemberIds = group.members || [];
+        // Ensure all member IDs are strings for consistency
+        const normalizedMemberIds = groupMemberIds.map((id: any) => String(id));
+        const groupMembers = members.filter((member: any) => normalizedMemberIds.includes(String(member.id)));
+        
+        console.log(`📋 Group "${group.name}" has member IDs:`, normalizedMemberIds, 'matched members:', groupMembers.length);
+        
+        return {
+          id: String(group.id),
+          name: group.name,
+          key: group.key,
+          project: group.project,
+          projectLead: group.projectLead,
+          description: group.description,
+          status: group.status,
+          members: groupMembers.map((m: any) => ({
+            id: m.id,
+            lastName: m.lastName,
+            firstName: m.firstName,
+            memberRole: m.memberRole,
+            memberSource: m.memberSource,
+            email: m.email
+          }))
+        };
+      });
+      
+      setGroups(groupsWithMembers);
+      
+      // Preserve selected group ID if it still exists
+      if (selectedGroupId) {
+        const groupStillExists = groupsWithMembers.find(g => g.id === selectedGroupId);
+        if (groupStillExists) {
+          // Update selected rows to match the reloaded group's members
+          setSelectedRows(groupStillExists.members.map(m => m.id));
+        }
+      } else if (groupsWithMembers.length > 0) {
+        // Set first group as selected by default only if nothing is selected
+        setSelectedGroupId(groupsWithMembers[0].id);
+      }
+    } catch (error) {
+      console.error('Error loading distribution groups:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Load distribution groups and members on mount
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        
-        // Fetch distribution groups
-        const distributionGroups = await dataService.getDistributionGroups();
-        console.log('📥 Loaded distribution groups from localStorage:', distributionGroups);
-        
-        // Fetch all members
-        const members = await dataService.getMembers();
-        setAllMembers(members);
-        
-        // Fetch project members mapping
-        const projMembers = await dataService.getProjectMembers();
-        setProjectMembers(projMembers);
-        
-        // Build groups with members included from the group.members array
-        const groupsWithMembers: DistributionGroup[] = distributionGroups.map((group: any) => {
-          const groupMemberIds = group.members || [];
-          // Ensure all member IDs are strings for consistency
-          const normalizedMemberIds = groupMemberIds.map((id: any) => String(id));
-          const groupMembers = members.filter((member: any) => normalizedMemberIds.includes(String(member.id)));
-          
-          console.log(`📋 Group "${group.name}" has member IDs:`, normalizedMemberIds, 'matched members:', groupMembers.length);
-          
-          return {
-            id: String(group.id),
-            name: group.name,
-            key: group.key,
-            project: group.project,
-            projectLead: group.projectLead,
-            description: group.description,
-            status: group.status,
-            members: groupMembers.map((m: any) => ({
-              id: m.id,
-              lastName: m.lastName,
-              firstName: m.firstName,
-              memberRole: m.memberRole,
-              memberSource: m.memberSource,
-              email: m.email
-            }))
-          };
-        });
-        
-        setGroups(groupsWithMembers);
-        
-        // Set first group as selected by default
-        if (groupsWithMembers.length > 0) {
-          setSelectedGroupId(groupsWithMembers[0].id);
-        }
-      } catch (error) {
-        console.error('Error loading distribution groups:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
     loadData();
   }, []);
 
@@ -433,24 +441,32 @@ const EmailDistributionGroups: React.FC = () => {
       
       // Save to database.json
       try {
-        console.log('Fetching database.json...');
-        console.log('Updating group:', selectedGroupId, 'with members:', selectedMemberIds);
+        console.log('📋 Group ID:', selectedGroupId);
+        console.log('📋 Selected member IDs:', selectedMemberIds);
         
         // Update the distribution group in localStorage
         const allGroups = await dataService.getDistributionGroups();
-        const groupIndex = allGroups.findIndex((g: any) => g.id === Number(selectedGroupId));
+        console.log('📥 Loaded groups from localStorage:', allGroups.map((g: any) => ({ id: g.id, name: g.name })));
+        
+        const groupIndex = allGroups.findIndex((g: any) => String(g.id) === String(selectedGroupId));
+        console.log('📋 Group index found:', groupIndex);
+        
         if (groupIndex !== -1) {
           // Ensure member IDs are stored as strings for consistency
           allGroups[groupIndex].members = selectedMemberIds.map(id => String(id));
           allGroups[groupIndex].memberCount = selectedMemberIds.length;
           
+          console.log('💾 Saving group:', allGroups[groupIndex]);
           await dataService.updateDistributionGroups(allGroups);
           console.log('✅ Distribution group members saved to localStorage');
+          
+          // Reload all data to ensure UI is in sync
+          await loadData();
         } else {
-          console.error('Group not found in database');
+          console.error('❌ Group not found in database. Looking for ID:', selectedGroupId);
         }
       } catch (error) {
-        console.error('Error updating localStorage:', error);
+        console.error('❌ Error updating localStorage:', error);
       }
     }
   };
