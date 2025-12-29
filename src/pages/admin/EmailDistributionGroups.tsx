@@ -1,45 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Paper,
-  TextField,
-  Button,
-  Typography,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  InputAdornment,
-  Grid,
-  Chip,
-  ToggleButton,
-  ToggleButtonGroup,
   Breadcrumbs,
   Link,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Avatar,
+  Typography,
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogContentText,
   DialogActions,
-  IconButton
+  DialogContentText,
+  Button,
+  TextField,
+  Grid,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  IconButton,
+  Avatar,
+  Chip
 } from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
-import GroupIcon from '@mui/icons-material/Group';
-import AddIcon from '@mui/icons-material/Add';
-import PersonAddIcon from '@mui/icons-material/PersonAdd';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import SaveIcon from '@mui/icons-material/Save';
-import DeleteIcon from '@mui/icons-material/Delete';
 import CloseIcon from '@mui/icons-material/Close';
-import { DataGrid, GridColDef, GridRowSelectionModel } from '@mui/x-data-grid';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import { GridColDef, GridRowSelectionModel } from '@mui/x-data-grid';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { dataService } from '../../services/dataService';
+import DistributionGroupList from '../../components/DistributionGroupList';
+import DistributionGroupDetail from '../../components/DistributionGroupDetail';
 
 // Interfaces
 interface DistributionGroupMember {
@@ -56,6 +45,7 @@ interface DistributionGroup {
   name: string;
   key: string;
   project?: string;
+  projectLead?: string;
   description?: string;
   status: 'Active' | 'Inactive';
   members: DistributionGroupMember[];
@@ -72,6 +62,7 @@ const validationSchema = Yup.object({
     .required('Key is required')
     .matches(/^[a-z0-9-]+$/, 'Key must be lowercase with hyphens only'),
   project: Yup.string().required('Project is required'),
+  projectLead: Yup.string(),
   description: Yup.string().required('Description is required'),
   status: Yup.string().required('Status is required')
 });
@@ -79,7 +70,6 @@ const validationSchema = Yup.object({
 const EmailDistributionGroups: React.FC = () => {
   const [groups, setGroups] = useState<DistributionGroup[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchText, setSearchText] = useState('');
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [selectedRows, setSelectedRows] = useState<GridRowSelectionModel>([]);
   const [memberFilter, setMemberFilter] = useState<'Members' | 'All'>('All');
@@ -99,6 +89,7 @@ const EmailDistributionGroups: React.FC = () => {
         
         // Fetch distribution groups
         const distributionGroups = await dataService.getDistributionGroups();
+        console.log('📥 Loaded distribution groups from localStorage:', distributionGroups);
         
         // Fetch all members
         const members = await dataService.getMembers();
@@ -111,13 +102,18 @@ const EmailDistributionGroups: React.FC = () => {
         // Build groups with members included from the group.members array
         const groupsWithMembers: DistributionGroup[] = distributionGroups.map((group: any) => {
           const groupMemberIds = group.members || [];
-          const groupMembers = members.filter((member: any) => groupMemberIds.includes(member.id));
+          // Ensure all member IDs are strings for consistency
+          const normalizedMemberIds = groupMemberIds.map((id: any) => String(id));
+          const groupMembers = members.filter((member: any) => normalizedMemberIds.includes(String(member.id)));
+          
+          console.log(`📋 Group "${group.name}" has member IDs:`, normalizedMemberIds, 'matched members:', groupMembers.length);
           
           return {
             id: String(group.id),
             name: group.name,
             key: group.key,
             project: group.project,
+            projectLead: group.projectLead,
             description: group.description,
             status: group.status,
             members: groupMembers.map((m: any) => ({
@@ -125,6 +121,7 @@ const EmailDistributionGroups: React.FC = () => {
               lastName: m.lastName,
               firstName: m.firstName,
               memberRole: m.memberRole,
+              memberSource: m.memberSource,
               email: m.email
             }))
           };
@@ -152,6 +149,7 @@ const EmailDistributionGroups: React.FC = () => {
       name: '',
       key: '',
       project: '',
+      projectLead: '',
       description: '',
       status: 'Inactive' as 'Active' | 'Inactive'
     },
@@ -166,6 +164,7 @@ const EmailDistributionGroups: React.FC = () => {
                 name: values.name,
                 key: values.key,
                 project: values.project,
+                projectLead: values.projectLead,
                 description: values.description,
                 status: values.status
               }
@@ -173,36 +172,56 @@ const EmailDistributionGroups: React.FC = () => {
         );
         setGroups(updatedGroups);
         
-        // Save to database.json
+        // Save to localStorage
         try {
-          const response = await fetch('/evomni-playground/src/database/database.json');
-          const db = await response.json();
+          const allGroups = await dataService.getDistributionGroups();
+          const groupIndex = allGroups.findIndex((g: any) => g.id === Number(selectedGroupId));
           
-          const groupIndex = db.distributionGroups.findIndex((g: any) => g.id === Number(selectedGroupId));
           if (groupIndex !== -1) {
-            db.distributionGroups[groupIndex].name = values.name;
-            db.distributionGroups[groupIndex].key = values.key;
-            db.distributionGroups[groupIndex].project = values.project;
-            db.distributionGroups[groupIndex].description = values.description;
-            db.distributionGroups[groupIndex].status = values.status;
+            allGroups[groupIndex].name = values.name;
+            allGroups[groupIndex].key = values.key;
+            allGroups[groupIndex].project = values.project;
+            allGroups[groupIndex].projectLead = values.projectLead;
+            allGroups[groupIndex].description = values.description;
+            allGroups[groupIndex].status = values.status;
             
-            const saveResponse = await fetch('/api/save-database', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(db)
+            await dataService.updateDistributionGroups(allGroups);
+            console.log('✅ Distribution group saved to localStorage');
+            
+            // Reload the groups from localStorage
+            const updatedDistributionGroups = await dataService.getDistributionGroups();
+            const members = await dataService.getMembers();
+            const projMembers = await dataService.getProjectMembers();
+            
+            const groupsWithMembers: DistributionGroup[] = updatedDistributionGroups.map((group: any) => {
+              const groupMemberIds = group.members || [];
+              const groupMembers = members.filter((member: any) => groupMemberIds.includes(member.id));
+              
+              return {
+                id: String(group.id),
+                name: group.name,
+                key: group.key,
+                project: group.project,
+                projectLead: group.projectLead,
+                description: group.description,
+                status: group.status,
+                members: groupMembers.map((m: any) => ({
+                  id: m.id,
+                  lastName: m.lastName,
+                  firstName: m.firstName,
+                  memberRole: m.memberRole,
+                  memberSource: m.memberSource,
+                  email: m.email
+                }))
+              };
             });
             
-            const saveResult = await saveResponse.json();
-            if (saveResult.success) {
-              console.log('Distribution group saved successfully');
-            } else {
-              console.error('Save failed:', saveResult.error);
-            }
+            setGroups(groupsWithMembers);
+            setAllMembers(members);
+            setProjectMembers(projMembers);
           }
         } catch (error) {
-          console.error('Error updating database:', error);
+          console.error('Error updating localStorage:', error);
         }
       } else {
         // Create new group
@@ -211,6 +230,7 @@ const EmailDistributionGroups: React.FC = () => {
           name: values.name,
           key: values.key,
           project: values.project,
+          projectLead: values.projectLead,
           description: values.description,
           status: values.status,
           members: []
@@ -218,38 +238,26 @@ const EmailDistributionGroups: React.FC = () => {
         setGroups([...groups, newGroup]);
         setSelectedGroupId(newGroup.id);
         
-        // Save to database.json
+        // Save to localStorage
         try {
-          const response = await fetch('/evomni-playground/src/database/database.json');
-          const db = await response.json();
+          const allGroups = await dataService.getDistributionGroups();
           
-          db.distributionGroups.push({
+          allGroups.push({
             id: Number(newGroup.id),
             name: newGroup.name,
             key: newGroup.key,
             project: newGroup.project,
+            projectLead: newGroup.projectLead,
             description: newGroup.description,
             status: newGroup.status,
             members: [],
             memberCount: 0
           });
           
-          const saveResponse = await fetch('/api/save-database', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(db)
-          });
-          
-          const saveResult = await saveResponse.json();
-          if (saveResult.success) {
-            console.log('New distribution group created successfully');
-          } else {
-            console.error('Save failed:', saveResult.error);
-          }
+          await dataService.updateDistributionGroups(allGroups);
+          console.log('✅ New distribution group created in localStorage');
         } catch (error) {
-          console.error('Error creating group in database:', error);
+          console.error('Error creating group in localStorage:', error);
         }
       }
     }
@@ -296,90 +304,60 @@ const EmailDistributionGroups: React.FC = () => {
           percentChange: 0
         };
         
-        db.members.push(newMember);
+        const allMembers = await dataService.getMembers();
+        allMembers.push(newMember);
+        await dataService.updateMembers(allMembers);
         
         // If there's a selected group, add the new member to it
         if (selectedGroupId && selectedGroup) {
-          const groupIndex = db.distributionGroups.findIndex((g: any) => g.id === Number(selectedGroupId));
+          const allGroups = await dataService.getDistributionGroups();
+          const groupIndex = allGroups.findIndex((g: any) => g.id === Number(selectedGroupId));
           if (groupIndex !== -1) {
-            if (!db.distributionGroups[groupIndex].members) {
-              db.distributionGroups[groupIndex].members = [];
+            if (!allGroups[groupIndex].members) {
+              allGroups[groupIndex].members = [];
             }
-            db.distributionGroups[groupIndex].members.push(newMemberId);
-            db.distributionGroups[groupIndex].memberCount = db.distributionGroups[groupIndex].members.length;
+            allGroups[groupIndex].members.push(newMemberId);
+            allGroups[groupIndex].memberCount = allGroups[groupIndex].members.length;
           }
-          
-          // Add the new member to the projectMembers mapping for the selected group's project
-          if (selectedGroup.project) {
-            if (!db.projectMembers) {
-              db.projectMembers = [];
-            }
-            // Generate new projectMember ID
-            const maxProjectMemberId = db.projectMembers.length > 0 
-              ? Math.max(...db.projectMembers.map((pm: any) => {
-                  const id = pm.id;
-                  return typeof id === 'string' ? parseInt(id.replace('pm', '')) : 0;
-                }))
-              : 0;
-            const newProjectMemberId = `pm${maxProjectMemberId + 1}`;
-            
-            db.projectMembers.push({
-              id: newProjectMemberId,
-              project: selectedGroup.project,
-              memberId: newMemberId
-            });
-          }
+          await dataService.updateDistributionGroups(allGroups);
         }
         
-        const saveResponse = await fetch('/api/save-database', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(db)
-        });
+        console.log('✅ New member created in localStorage');
         
-        const saveResult = await saveResponse.json();
-        if (saveResult.success) {
-          console.log('New member created successfully');
+        // Update allMembers state
+        const newMemberWithType = newMember as DistributionGroupMember;
+        setAllMembers([...allMembers, newMemberWithType]);
+        
+        // Update projectMembers state if a group with a project is selected
+        if (selectedGroupId && selectedGroup && selectedGroup.project) {
+          const maxProjectMemberId = projectMembers.length > 0 
+            ? Math.max(...projectMembers.map((pm: any) => {
+                const id = pm.id;
+                return typeof id === 'string' ? parseInt(id.replace('pm', '')) : 0;
+              }))
+            : 0;
+          const newProjectMemberId = `pm${maxProjectMemberId + 1}`;
           
-          // Update allMembers state
-          const newMemberWithType = newMember as DistributionGroupMember;
-          setAllMembers([...allMembers, newMemberWithType]);
-          
-          // Update projectMembers state if a group with a project is selected
-          if (selectedGroupId && selectedGroup && selectedGroup.project) {
-            const maxProjectMemberId = projectMembers.length > 0 
-              ? Math.max(...projectMembers.map((pm: any) => {
-                  const id = pm.id;
-                  return typeof id === 'string' ? parseInt(id.replace('pm', '')) : 0;
-                }))
-              : 0;
-            const newProjectMemberId = `pm${maxProjectMemberId + 1}`;
-            
-            setProjectMembers([...projectMembers, {
-              id: newProjectMemberId,
-              project: selectedGroup.project,
-              memberId: newMemberId
-            }]);
-          }
-          
-          // Update local group state to include the new member
-          if (selectedGroupId && selectedGroup) {
-            const updatedGroups = groups.map(g => 
-              g.id === selectedGroupId 
-                ? { ...g, members: [...g.members, newMemberWithType] }
-                : g
-            );
-            setGroups(updatedGroups);
-            setSelectedRows([...selectedRows, newMemberId]);
-          }
-          
-          setNewMemberDialogOpen(false);
-          newMemberFormik.resetForm();
-        } else {
-          console.error('Save failed:', saveResult.error);
+          setProjectMembers([...projectMembers, {
+            id: newProjectMemberId,
+            project: selectedGroup.project,
+            memberId: newMemberId
+          }]);
         }
+        
+        // Update local group state to include the new member
+        if (selectedGroupId && selectedGroup) {
+          const updatedGroups = groups.map(g => 
+            g.id === selectedGroupId 
+              ? { ...g, members: [...g.members, newMemberWithType] }
+              : g
+          );
+          setGroups(updatedGroups);
+          setSelectedRows([...selectedRows, newMemberId]);
+        }
+        
+        setNewMemberDialogOpen(false);
+        newMemberFormik.resetForm();
       } catch (error) {
         console.error('Error creating member:', error);
       }
@@ -393,6 +371,7 @@ const EmailDistributionGroups: React.FC = () => {
         name: selectedGroup.name,
         key: selectedGroup.key,
         project: selectedGroup.project || '',
+        projectLead: selectedGroup.projectLead || '',
         description: selectedGroup.description || '',
         status: selectedGroup.status
       });
@@ -455,40 +434,23 @@ const EmailDistributionGroups: React.FC = () => {
       // Save to database.json
       try {
         console.log('Fetching database.json...');
-        const response = await fetch('/evomni-playground/src/database/database.json');
-        const db = await response.json();
-        
         console.log('Updating group:', selectedGroupId, 'with members:', selectedMemberIds);
         
-        // Update the distribution group in the database
-        const groupIndex = db.distributionGroups.findIndex((g: any) => g.id === Number(selectedGroupId));
+        // Update the distribution group in localStorage
+        const allGroups = await dataService.getDistributionGroups();
+        const groupIndex = allGroups.findIndex((g: any) => g.id === Number(selectedGroupId));
         if (groupIndex !== -1) {
-          db.distributionGroups[groupIndex].members = selectedMemberIds;
-          db.distributionGroups[groupIndex].memberCount = selectedMemberIds.length;
+          // Ensure member IDs are stored as strings for consistency
+          allGroups[groupIndex].members = selectedMemberIds.map(id => String(id));
+          allGroups[groupIndex].memberCount = selectedMemberIds.length;
           
-          console.log('Saving to /api/save-database...');
-          // Save back to file via API
-          const saveResponse = await fetch('/api/save-database', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(db)
-          });
-          
-          const saveResult = await saveResponse.json();
-          console.log('Save result:', saveResult);
-          
-          if (saveResult.success) {
-            console.log('Distribution group members saved successfully');
-          } else {
-            console.error('Save failed:', saveResult.error);
-          }
+          await dataService.updateDistributionGroups(allGroups);
+          console.log('✅ Distribution group members saved to localStorage');
         } else {
           console.error('Group not found in database');
         }
       } catch (error) {
-        console.error('Error updating database:', error);
+        console.error('Error updating localStorage:', error);
       }
     }
   };
@@ -500,6 +462,7 @@ const EmailDistributionGroups: React.FC = () => {
         name: '',
         key: '',
         project: '',
+        projectLead: '',
         description: '',
         status: 'Inactive'
       }
@@ -510,7 +473,7 @@ const EmailDistributionGroups: React.FC = () => {
     setCopyDialogOpen(true);
   };
 
-  const confirmCopy = () => {
+  const confirmCopy = async () => {
     if (selectedGroup) {
       // Create a copy of the group with all members
       const newGroup: DistributionGroup = {
@@ -518,12 +481,35 @@ const EmailDistributionGroups: React.FC = () => {
         name: `Copy of ${selectedGroup.name}`,
         key: `copy-of-${selectedGroup.key}`,
         project: selectedGroup.project,
+        projectLead: selectedGroup.projectLead,
         description: selectedGroup.description,
         status: selectedGroup.status,
         members: [...selectedGroup.members]
       };
       setGroups([...groups, newGroup]);
       setSelectedGroupId(newGroup.id);
+      
+      // Save to localStorage
+      try {
+        const allGroups = await dataService.getDistributionGroups();
+        
+        allGroups.push({
+          id: Number(newGroup.id),
+          name: newGroup.name,
+          key: newGroup.key,
+          project: newGroup.project,
+          projectLead: newGroup.projectLead,
+          description: newGroup.description,
+          status: newGroup.status,
+          members: newGroup.members.map(m => m.id),
+          memberCount: newGroup.members.length
+        });
+        
+        await dataService.updateDistributionGroups(allGroups);
+        console.log('✅ Distribution group copied to localStorage');
+      } catch (error) {
+        console.error('Error copying group in localStorage:', error);
+      }
     }
     setCopyDialogOpen(false);
   };
@@ -536,10 +522,54 @@ const EmailDistributionGroups: React.FC = () => {
     setDeleteDialogOpen(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (selectedGroupId) {
-      setGroups(groups.filter(g => g.id !== selectedGroupId));
-      setSelectedGroupId(groups[0]?.id || null);
+      // Delete from localStorage first
+      try {
+        const allGroups = await dataService.getDistributionGroups();
+        const updatedGroups = allGroups.filter((g: any) => g.id !== Number(selectedGroupId));
+        
+        await dataService.updateDistributionGroups(updatedGroups);
+        console.log('✅ Distribution group deleted from localStorage');
+        
+        // Reload data to update UI
+        const refreshedGroups = await dataService.getDistributionGroups();
+        const members = await dataService.getMembers();
+        const projMembers = await dataService.getProjectMembers();
+        
+        const groupsWithMembers: DistributionGroup[] = refreshedGroups.map((group: any) => {
+          const groupMemberIds = group.members || [];
+          const groupMembers = members.filter((member: any) => groupMemberIds.includes(member.id));
+          
+          return {
+            id: String(group.id),
+            name: group.name,
+            key: group.key,
+            project: group.project,
+            projectLead: group.projectLead,
+            description: group.description,
+            status: group.status,
+            members: groupMembers.map((m: any) => ({
+              id: m.id,
+              lastName: m.lastName,
+              firstName: m.firstName,
+              memberRole: m.memberRole,
+              memberSource: m.memberSource,
+              email: m.email
+            }))
+          };
+        });
+        
+        setGroups(groupsWithMembers);
+        setAllMembers(members);
+        setProjectMembers(projMembers);
+        
+        // Select first available group or null
+        const newSelectedId = groupsWithMembers.length > 0 ? groupsWithMembers[0].id : null;
+        setSelectedGroupId(newSelectedId);
+      } catch (error) {
+        console.error('Error deleting group from localStorage:', error);
+      }
     }
     setDeleteDialogOpen(false);
   };
@@ -550,6 +580,72 @@ const EmailDistributionGroups: React.FC = () => {
 
   const handleSave = () => {
     formik.handleSubmit();
+  };
+
+  const handleEditMember = (member: any) => {
+    // TODO: Open edit dialog with member data
+    console.log('Edit member:', member);
+    alert(`Edit member functionality coming soon for ${member.firstName} ${member.lastName}`);
+  };
+
+  const handleDeleteMember = async (memberId: string) => {
+    if (!confirm('Are you sure you want to delete this custom member?')) {
+      return;
+    }
+
+    try {
+      // Remove member from all groups
+      const allGroups = await dataService.getDistributionGroups();
+      const updatedGroups = allGroups.map((g: any) => ({
+        ...g,
+        members: (g.members || []).filter((id: any) => String(id) !== String(memberId)),
+        memberCount: (g.members || []).filter((id: any) => String(id) !== String(memberId)).length
+      }));
+      await dataService.updateDistributionGroups(updatedGroups);
+
+      // Remove member from members array
+      const allMembers = await dataService.getMembers();
+      const updatedMembers = allMembers.filter((m: any) => String(m.id) !== String(memberId));
+      await dataService.updateMembers(updatedMembers);
+
+      console.log('✅ Custom member deleted');
+
+      // Reload data
+      const refreshedGroups = await dataService.getDistributionGroups();
+      const refreshedMembers = await dataService.getMembers();
+      const projMembers = await dataService.getProjectMembers();
+
+      const groupsWithMembers: DistributionGroup[] = refreshedGroups.map((group: any) => {
+        const groupMemberIds = group.members || [];
+        const normalizedMemberIds = groupMemberIds.map((id: any) => String(id));
+        const groupMembers = refreshedMembers.filter((member: any) => normalizedMemberIds.includes(String(member.id)));
+
+        return {
+          id: String(group.id),
+          name: group.name,
+          key: group.key,
+          project: group.project,
+          projectLead: group.projectLead,
+          description: group.description,
+          status: group.status,
+          members: groupMembers.map((m: any) => ({
+            id: m.id,
+            lastName: m.lastName,
+            firstName: m.firstName,
+            memberRole: m.memberRole,
+            memberSource: m.memberSource,
+            email: m.email
+          }))
+        };
+      });
+
+      setGroups(groupsWithMembers);
+      setAllMembers(refreshedMembers);
+      setProjectMembers(projMembers);
+    } catch (error) {
+      console.error('Error deleting member:', error);
+      alert('Failed to delete member. Please try again.');
+    }
   };
 
   // DataGrid columns
@@ -602,11 +698,46 @@ const EmailDistributionGroups: React.FC = () => {
       }
     },
     {
+      field: 'supervisor',
+      headerName: 'Supervisor',
+      flex: 1,
+      valueGetter: (params) => {
+        const member = params.row;
+        const memberSource = member.memberRole === 'Manager' ? 'custom' : member.memberSource;
+        
+        // Custom members don't have supervisors
+        if (memberSource === 'custom') {
+          return '-';
+        }
+        
+        // Only Schedulers have supervisors (Project Leads)
+        if (member.memberRole === 'Scheduler' && selectedGroup?.project) {
+          // Use project leads for this specific project
+          if (projectLeadsForProject.length > 0) {
+            // Get all schedulers to distribute project leads evenly
+            const schedulers = potentialMembers.filter(m => m.memberRole === 'Scheduler');
+            const schedulerIndex = schedulers.findIndex(s => s.id === member.id);
+            
+            if (schedulerIndex !== -1) {
+              // Distribute project leads across schedulers
+              const projectLeadIndex = schedulerIndex % projectLeadsForProject.length;
+              const supervisor = projectLeadsForProject[projectLeadIndex];
+              return `${supervisor.lastName}, ${supervisor.firstName}`;
+            }
+          }
+        }
+        
+        return '-';
+      }
+    },
+    {
       field: 'memberSource',
       headerName: 'Member Type',
       flex: 0.7,
       renderCell: (params) => {
-        const source = params.value as string;
+        const row = params.row;
+        // Force Managers to show as Custom
+        const source = row.memberRole === 'Manager' ? 'custom' : params.value as string;
         const label = source === 'p6' ? 'P6' : 'Custom';
         const color = source === 'p6' ? 'default' : 'secondary';
         
@@ -617,21 +748,60 @@ const EmailDistributionGroups: React.FC = () => {
       field: 'email',
       headerName: 'Email Address',
       flex: 1
+    },
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      width: 100,
+      sortable: false,
+      renderCell: (params) => {
+        const row = params.row;
+        const isCustom = row.memberRole === 'Manager' || row.memberSource === 'custom';
+        
+        if (!isCustom) return null;
+        
+        return (
+          <Box sx={{ display: 'flex', gap: 0.5 }}>
+            <IconButton
+              size="small"
+              onClick={() => handleEditMember(row)}
+              title="Edit member"
+            >
+              <EditIcon fontSize="small" />
+            </IconButton>
+            <IconButton
+              size="small"
+              color="error"
+              onClick={() => handleDeleteMember(row.id)}
+              title="Delete member"
+            >
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Box>
+        );
+      }
     }
   ];
-
-  const filteredGroups = groups.filter(group =>
-    group.name.toLowerCase().includes(searchText.toLowerCase())
-  );
 
   // Get all potential members for the selected group's project
   const potentialMembers = selectedGroup && selectedGroup.project
     ? allMembers.filter(member => {
         // Check if this member is mapped to this project
+        // Only show Schedulers and Managers
         return projectMembers.some(pm => 
           pm.project === selectedGroup.project && pm.memberId === member.id
-        );
+        ) && (member.memberRole === 'Scheduler' || member.memberRole === 'Manager');
       })
+    : [];
+
+  // Get all project leads for the selected project (for supervisor assignment)
+  const projectLeadsForProject = selectedGroup && selectedGroup.project
+    ? allMembers.filter(member => 
+        member.memberRole === 'Project Lead' &&
+        projectMembers.some(pm => 
+          pm.project === selectedGroup.project && pm.memberId === member.id
+        )
+      )
     : [];
 
   // Get members to display based on filter
@@ -674,426 +844,33 @@ const EmailDistributionGroups: React.FC = () => {
 
       <Box sx={{ display: 'flex', flexGrow: 1, gap: 2, overflow: 'hidden', minHeight: 0 }}>
         {/* Left Panel - List */}
-        <Paper
-          elevation={0}
-          sx={{
-            width: 350,
-            display: 'flex',
-            flexDirection: 'column',
-            border: '1px solid',
-            borderColor: 'divider'
-          }}
-        >
-          <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography variant="h6">Distribution Groups</Typography>
-              <Button variant="contained" size="small" onClick={handleNewGroup} startIcon={<AddIcon />}>
-                New
-              </Button>
-            </Box>
-            <TextField
-              size="small"
-              fullWidth
-              placeholder="Search groups..."
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                )
-              }}
-            />
-          </Box>
-          <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
-            <List>
-              {filteredGroups.map((group) => (
-                <ListItem
-                  key={group.id}
-                  button
-                  selected={selectedGroupId === group.id}
-                  onClick={() => setSelectedGroupId(group.id)}
-                  sx={{ alignItems: 'flex-start' }}
-                >
-                  <ListItemIcon sx={{ mt: '4px' }}>
-                    <GroupIcon />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <span>{group.name}</span>
-                        <Chip 
-                          label={group.status} 
-                          color={group.status === 'Active' ? 'success' : 'error'} 
-                          size="small"
-                          sx={{ 
-                            ml: 1,
-                            mt: '4px',
-                            height: 18,
-                            fontSize: '0.65rem',
-                            '& .MuiChip-label': {
-                              px: 0.75
-                            }
-                          }}
-                        />
-                      </Box>
-                    }
-                    secondary={
-                      <Typography variant="caption" color="text.secondary">
-                        {group.project && `${group.project} - `}
-                        {group.members.length} member{group.members.length !== 1 ? 's' : ''}
-                      </Typography>
-                    }
-                  />
-                </ListItem>
-              ))}
-            </List>
-          </Box>
-        </Paper>
+        <DistributionGroupList
+          groups={groups}
+          selectedGroupId={selectedGroupId}
+          onSelectGroup={setSelectedGroupId}
+          onNewGroup={handleNewGroup}
+        />
 
         {/* Right Panel - Details */}
-        <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {selectedGroup || selectedGroupId === null ? (
-          <>
-            {/* Header with buttons */}
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Typography variant="h6">
-                {selectedGroupId ? `Edit Group: ${selectedGroup?.name}` : 'New Group'}
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button variant="outlined" size="small" onClick={handleNewGroup} startIcon={<AddIcon />}>
-                  New
-                </Button>
-                <Button variant="outlined" size="small" onClick={handleCopy} disabled={!selectedGroupId} startIcon={<ContentCopyIcon />}>
-                  Copy
-                </Button>
-                <Button variant="outlined" size="small" onClick={handleSave} startIcon={<SaveIcon />}>
-                  Save
-                </Button>
-                <Button variant="outlined" size="small" color="error" onClick={handleDelete} disabled={!selectedGroupId} startIcon={<DeleteIcon />}>
-                  Delete
-                </Button>
-              </Box>
-            </Box>
-
-            {/* Form */}
-            <Paper
-              elevation={0}
-              sx={{
-                p: 2,
-                border: '1px solid',
-                borderColor: 'divider',
-                '& .MuiInputBase-root': {
-                  fontSize: '0.875rem'
-                },
-                '& .MuiInputLabel-root': {
-                  fontSize: '0.875rem'
-                },
-                '& .MuiFormHelperText-root': {
-                  fontSize: '0.75rem'
-                }
-              }}
-            >
-              <Typography variant="subtitle1" sx={{ mb: 2 }}>
-                Distribution Group Info
-              </Typography>
-              <form onSubmit={formik.handleSubmit}>
-                <Grid container spacing={2}>
-                  {/* Left Column */}
-                  <Grid item xs={6}>
-                    <Grid container spacing={2}>
-                      {/* Project */}
-                      <Grid item xs={12}>
-                        <FormControl
-                          size="small"
-                          fullWidth
-                          error={formik.touched.project && Boolean(formik.errors.project)}
-                          sx={{
-                            '& .MuiInputLabel-root': {
-                              fontSize: '0.75rem'
-                            },
-                            '& .MuiSelect-select': {
-                              fontSize: '0.75rem'
-                            }
-                          }}
-                        >
-                          <InputLabel id="project-label">Project *</InputLabel>
-                          <Select
-                            labelId="project-label"
-                            label="Project *"
-                            name="project"
-                            value={formik.values.project}
-                            onChange={handleProjectChange}
-                            onBlur={formik.handleBlur}
-                            MenuProps={{
-                              PaperProps: {
-                                sx: {
-                                  '& .MuiMenuItem-root': {
-                                    fontSize: '0.75rem'
-                                  }
-                                }
-                              }
-                            }}
-                          >
-                            <MenuItem value=""><em>None</em></MenuItem>
-                            <MenuItem value="EM">EM</MenuItem>
-                            <MenuItem value="CAP-1">CAP-1</MenuItem>
-                            <MenuItem value="CAP-2">CAP-2</MenuItem>
-                            <MenuItem value="CAP-3">CAP-3</MenuItem>
-                            <MenuItem value="X-326">X-326</MenuItem>
-                            <MenuItem value="X-333">X-333</MenuItem>
-                          </Select>
-                          {formik.touched.project && formik.errors.project && (
-                            <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75, fontSize: '0.65rem' }}>
-                              {formik.errors.project}
-                            </Typography>
-                          )}
-                        </FormControl>
-                      </Grid>
-
-                      {/* Group Name */}
-                      <Grid item xs={12}>
-                        <TextField
-                          size="small"
-                          fullWidth
-                          label="Group Name"
-                          name="name"
-                          required
-                          value={formik.values.name}
-                          onChange={handleNameChange}
-                          onBlur={formik.handleBlur}
-                          error={formik.touched.name && Boolean(formik.errors.name)}
-                          helperText={formik.touched.name && formik.errors.name}
-                          sx={{
-                            '& .MuiInputBase-input': {
-                              fontSize: '0.75rem'
-                            },
-                            '& .MuiInputLabel-root': {
-                              fontSize: '0.75rem'
-                            },
-                            '& .MuiFormHelperText-root': {
-                              fontSize: '0.65rem'
-                            }
-                          }}
-                        />
-                      </Grid>
-
-                      {/* Key */}
-                      <Grid item xs={12}>
-                        <TextField
-                          size="small"
-                          fullWidth
-                          label="Key"
-                          name="key"
-                          value={formik.values.key}
-                          onChange={formik.handleChange}
-                          onBlur={formik.handleBlur}
-                          error={formik.touched.key && Boolean(formik.errors.key)}
-                          helperText={formik.touched.key && formik.errors.key}
-                          disabled
-                          sx={{
-                            '& .MuiInputBase-input': {
-                              fontSize: '0.75rem'
-                            },
-                            '& .MuiInputLabel-root': {
-                              fontSize: '0.75rem'
-                            },
-                            '& .MuiFormHelperText-root': {
-                              fontSize: '0.65rem'
-                            },
-                            '& .MuiInputBase-input.Mui-disabled': {
-                              WebkitTextFillColor: 'rgba(0, 0, 0, 0.6)'
-                            }
-                          }}
-                        />
-                      </Grid>
-                    </Grid>
-                  </Grid>
-
-                  {/* Right Column */}
-                  <Grid item xs={6} sx={{ display: 'flex' }}>
-                    {/* Description */}
-                    <TextField
-                      size="small"
-                      fullWidth
-                      label="Description"
-                      name="description"
-                      required
-                      multiline
-                      value={formik.values.description}
-                      onChange={formik.handleChange}
-                      onBlur={formik.handleBlur}
-                      error={formik.touched.description && Boolean(formik.errors.description)}
-                      helperText={formik.touched.description && formik.errors.description}
-                      sx={{
-                        '& .MuiInputBase-root': {
-                          height: '100%',
-                          alignItems: 'flex-start'
-                        },
-                        '& .MuiInputBase-input': {
-                          height: '100% !important',
-                          overflow: 'auto !important',
-                          fontSize: '0.75rem'
-                        },
-                        '& .MuiInputLabel-root': {
-                          fontSize: '0.75rem'
-                        },
-                        '& .MuiFormHelperText-root': {
-                          fontSize: '0.65rem'
-                        }
-                      }}
-                    />
-                  </Grid>
-
-                  {/* Status - full width row below */}
-                  <Grid item xs={12}>
-                    <ToggleButtonGroup
-                      value={formik.values.status}
-                      exclusive
-                      onChange={(e, newStatus) => {
-                        if (newStatus !== null) {
-                          formik.setFieldValue('status', newStatus);
-                        }
-                      }}
-                      size="small"
-                      sx={{
-                        '& .MuiToggleButton-root': {
-                          fontSize: '0.75rem',
-                          padding: '4px 12px'
-                        }
-                      }}
-                    >
-                      <ToggleButton 
-                        value="Active"
-                        sx={{
-                          '&.Mui-selected': {
-                            backgroundColor: '#4caf50',
-                            color: 'white',
-                            '&:hover': {
-                              backgroundColor: '#45a049'
-                            }
-                          }
-                        }}
-                      >
-                        Active
-                      </ToggleButton>
-                      <ToggleButton 
-                        value="Inactive"
-                        sx={{
-                          '&.Mui-selected': {
-                            backgroundColor: '#f44336',
-                            color: 'white',
-                            '&:hover': {
-                              backgroundColor: '#da190b'
-                            }
-                          }
-                        }}
-                      >
-                        Inactive
-                      </ToggleButton>
-                    </ToggleButtonGroup>
-                  </Grid>
-                </Grid>
-              </form>
-            </Paper>
-
-            {/* Members DataGrid - Only show when editing existing group */}
-            {selectedGroupId && (
-            <Paper
-              elevation={0}
-              sx={{
-                flexGrow: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                border: '1px solid',
-                borderColor: 'divider',
-                overflow: 'hidden'
-              }}
-            >
-              <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="subtitle1">Distribution Group Members</Typography>
-                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                  <ToggleButtonGroup
-                    value={memberFilter}
-                    exclusive
-                    onChange={(e, newFilter) => {
-                      if (newFilter !== null) {
-                        setMemberFilter(newFilter);
-                      }
-                    }}
-                    size="small"
-                    sx={{
-                      '& .MuiToggleButton-root': {
-                        fontSize: '0.75rem',
-                        padding: '2px 8px'
-                      }
-                    }}
-                  >
-                    <ToggleButton value="All">All</ToggleButton>
-                    <ToggleButton value="Members">Members</ToggleButton>
-                  </ToggleButtonGroup>
-                  <Button
-                    variant="contained"
-                    size="small"
-                    onClick={() => setNewMemberDialogOpen(true)}
-                    startIcon={<PersonAddIcon />}
-                    sx={{ fontSize: '0.75rem', padding: '2px 8px' }}
-                  >
-                    New Member
-                  </Button>
-                </Box>
-              </Box>
-              <Box sx={{ height: 600, width: '100%' }}>
-                <DataGrid
-                  rows={displayedMembers}
-                  columns={columns}
-                  checkboxSelection
-                  disableRowSelectionOnClick
-                  density="compact"
-                  rowSelectionModel={selectedRows}
-                  onRowSelectionModelChange={handleMemberSelectionChange}
-                  initialState={{
-                    sorting: {
-                      sortModel: [
-                        { field: 'memberRole', sort: 'asc' }
-                      ]
-                    },
-                    pagination: {
-                      paginationModel: { pageSize: 25 }
-                    }
-                  }}
-                  pageSizeOptions={[25, 50, 100]}
-                  sx={{
-                    border: 'none',
-                    '& .MuiDataGrid-cell': {
-                      borderColor: 'divider',
-                      fontSize: '0.75rem'
-                    },
-                    '& .MuiDataGrid-columnHeaders': {
-                      borderColor: 'divider',
-                      fontSize: '0.75rem'
-                    },
-                    '& .MuiDataGrid-footerContainer': {
-                      borderTop: '1px solid',
-                      borderColor: 'divider',
-                      minHeight: '28px',
-                      height: '28px'
-                    }
-                  }}
-                />
-              </Box>
-            </Paper>
-            )}
-          </>
-        ) : (
-          <Box sx={{ p: 3, textAlign: 'center' }}>
-            <Typography variant="body2" color="text.secondary">
-              Select a group to view details
-            </Typography>
-          </Box>
-        )}
-        </Box>
+        <DistributionGroupDetail
+          selectedGroup={selectedGroup}
+          selectedGroupId={selectedGroupId}
+          formik={formik}
+          handleNameChange={handleNameChange}
+          handleProjectChange={handleProjectChange}
+          handleNewGroup={handleNewGroup}
+          handleCopy={handleCopy}
+          handleSave={handleSave}
+          handleDelete={handleDelete}
+          displayedMembers={displayedMembers}
+          allMembers={allMembers}
+          columns={columns}
+          selectedRows={selectedRows}
+          handleMemberSelectionChange={handleMemberSelectionChange}
+          memberFilter={memberFilter}
+          setMemberFilter={setMemberFilter}
+          setNewMemberDialogOpen={setNewMemberDialogOpen}
+        />
       </Box>
 
       {/* Delete Confirmation Dialog */}

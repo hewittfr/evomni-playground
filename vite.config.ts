@@ -9,7 +9,16 @@ export default defineConfig({
     {
       name: 'database-api',
       configureServer(server) {
+        // Add middleware at the beginning to intercept database.json requests
         server.middlewares.use((req, res, next) => {
+          // Intercept database.json requests and add no-cache headers
+          if (req.url?.includes('database.json')) {
+            res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+            res.setHeader('Surrogate-Control', 'no-store');
+          }
+          
           if (req.url === '/api/save-database' && req.method === 'POST') {
             let body = '';
             req.on('data', chunk => {
@@ -22,7 +31,9 @@ export default defineConfig({
                 fs.writeFileSync(dbPath, JSON.stringify(data, null, 4));
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ success: true }));
+                console.log('[Vite] Database saved successfully to:', dbPath);
               } catch (error) {
+                console.error('[Vite] Error saving database:', error);
                 res.writeHead(500, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ success: false, error: String(error) }));
               }
@@ -40,7 +51,10 @@ export default defineConfig({
   base: '/evomni-playground/',
   server: {
     port: 5173,
-    strictPort: false
+    strictPort: false,
+    fs: {
+      strict: false
+    }
   },
   build: {
     outDir: 'build'

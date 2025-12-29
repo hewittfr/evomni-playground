@@ -910,12 +910,12 @@
             "project": "EM",
             "description": "EM executive management team",
             "status": "Active",
-            "memberCount": 3,
+            "memberCount": 2,
             "members": [
                 "m94",
-                "m95",
-                "m100"
-            ]
+                "m95"
+            ],
+            "projectLead": ""
         },
         {
             "id": 2,
@@ -2235,15 +2235,6 @@
             "email": "james.southall@example.com",
             "memberSource": "p6",
             "percentChange": -6.4
-        },
-        {
-            "id": "m100",
-            "firstName": "Frank",
-            "lastName": "Hewitt",
-            "email": "hewittfr@outlook.com",
-            "memberRole": "Manager",
-            "memberSource": "custom",
-            "percentChange": 0
         }
     ],
     "settings": [
@@ -3265,11 +3256,6 @@
         {
             "project": "CAP-3",
             "memberId": "m99"
-        },
-        {
-            "id": "pm1",
-            "project": "EM",
-            "memberId": "m100"
         }
     ]
 }

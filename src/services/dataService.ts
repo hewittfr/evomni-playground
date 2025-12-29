@@ -1,25 +1,13 @@
-import axios from 'axios';
+import * as localStorageService from './localStorageService';
 
-// Create axios instance for database.json
-const dbClient = axios.create({
-  baseURL: import.meta.env.BASE_URL || '/',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Cache for the database
-let databaseCache: any = null;
-
-// Fetch the entire database
+// Fetch the entire database from localStorage
 async function getDatabase() {
-  if (databaseCache) {
-    return databaseCache;
-  }
-  
-  const response = await dbClient.get(`src/database/database.json?t=${Date.now()}`);
-  databaseCache = response.data;
-  return databaseCache;
+  return localStorageService.getDatabase();
+}
+
+// Save the entire database to localStorage
+async function saveDatabase(db: any) {
+  localStorageService.saveDatabase(db);
 }
 
 // Data access functions
@@ -189,9 +177,23 @@ export const dataService = {
     };
   },
 
-  // Clear cache (useful for testing or force refresh)
+  // Clear cache (no longer needed with localStorage)
   clearCache() {
-    databaseCache = null;
+    // No-op for backwards compatibility
+  },
+
+  // Update distribution groups
+  async updateDistributionGroups(groups: any[]) {
+    const db = await getDatabase();
+    db.distributionGroups = groups;
+    await saveDatabase(db);
+  },
+
+  // Update members
+  async updateMembers(members: any[]) {
+    const db = await getDatabase();
+    db.members = members;
+    await saveDatabase(db);
   }
 };
 

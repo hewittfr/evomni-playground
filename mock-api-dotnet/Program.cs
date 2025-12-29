@@ -312,4 +312,54 @@ app.MapGet("/api/dashboard", (HttpContext context, string? start, string? end) =
     });
 });
 
+app.MapPost("/api/save-database", async (HttpContext context) =>
+{
+    var isDev = Environment.GetEnvironmentVariable("EVOMNI_DEV") == "1";
+    
+    // In dev mode, bypass auth check
+    if (!isDev)
+    {
+        if (!IsValidNetworkUser(context))
+        {
+            return Results.Json(
+                new { error = "User Not authorized", message = "You must be a valid network user to access this resource." },
+                statusCode: 401
+            );
+        }
+    }
+    
+    try
+    {
+        using var reader = new StreamReader(context.Request.Body);
+        var body = await reader.ReadToEndAsync();
+        
+        // Determine the path to database.json - go up from mock-api-dotnet directory
+        var currentDir = Directory.GetCurrentDirectory();
+        var parentDir = Directory.GetParent(currentDir)?.FullName ?? currentDir;
+        var dbPath = Path.Combine(parentDir, "src", "database", "database.json");
+        
+        // Ensure the directory exists
+        var dbDirectory = Path.GetDirectoryName(dbPath);
+        if (dbDirectory != null && !Directory.Exists(dbDirectory))
+        {
+            Directory.CreateDirectory(dbDirectory);
+        }
+        
+        // Write the JSON to the file
+        await File.WriteAllTextAsync(dbPath, body);
+        
+        Console.WriteLine($"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] Database saved to: {dbPath}");
+        
+        return Results.Ok(new { success = true, message = "Database saved successfully", path = dbPath });
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] Error saving database: {ex.Message}");
+        return Results.Json(
+            new { success = false, error = ex.Message },
+            statusCode: 500
+        );
+    }
+});
+
 app.Run("http://localhost:5005");
