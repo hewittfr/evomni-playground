@@ -59,6 +59,7 @@ interface DistributionGroupDetailProps {
   formik: FormikProps<FormValues>;
   handleNameChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleProjectChange: (e: any) => void;
+  handleProjectLeadChange: (e: any) => void;
   handleNewGroup: () => void;
   handleCopy: () => void;
   handleSave: () => void;
@@ -79,6 +80,7 @@ const DistributionGroupDetail: React.FC<DistributionGroupDetailProps> = ({
   formik,
   handleNameChange,
   handleProjectChange,
+  handleProjectLeadChange,
   handleNewGroup,
   handleCopy,
   handleSave,
@@ -130,9 +132,15 @@ const DistributionGroupDetail: React.FC<DistributionGroupDetailProps> = ({
   }
 
   return (
-    <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <Box sx={{ 
+      flexGrow: 1, 
+      display: 'flex', 
+      flexDirection: 'column', 
+      gap: 2,
+      minHeight: 0
+    }}>
       {/* Header with buttons */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
         <Typography variant="h6">
           {selectedGroupId ? `Edit Group: ${selectedGroup?.name}` : 'New Group'}
         </Typography>
@@ -159,6 +167,7 @@ const DistributionGroupDetail: React.FC<DistributionGroupDetailProps> = ({
           p: 2,
           border: '1px solid',
           borderColor: 'divider',
+          flexShrink: 0,
           '& .MuiInputBase-root': {
             fontSize: '0.875rem'
           },
@@ -228,6 +237,7 @@ const DistributionGroupDetail: React.FC<DistributionGroupDetailProps> = ({
               <FormControl
                 size="small"
                 fullWidth
+                error={formik.touched.projectLead && Boolean(formik.errors.projectLead)}
                 sx={{
                   '& .MuiInputLabel-root': {
                     fontSize: '0.75rem'
@@ -237,13 +247,13 @@ const DistributionGroupDetail: React.FC<DistributionGroupDetailProps> = ({
                   }
                 }}
               >
-                <InputLabel id="project-lead-label">Project Lead</InputLabel>
+                <InputLabel id="project-lead-label">Project Lead *</InputLabel>
                 <Select
                   labelId="project-lead-label"
-                  label="Project Lead"
+                  label="Project Lead *"
                   name="projectLead"
                   value={formik.values.projectLead}
-                  onChange={formik.handleChange}
+                  onChange={handleProjectLeadChange}
                   onBlur={formik.handleBlur}
                   MenuProps={{
                     PaperProps: {
@@ -264,6 +274,11 @@ const DistributionGroupDetail: React.FC<DistributionGroupDetailProps> = ({
                       </MenuItem>
                     ))}
                 </Select>
+                {formik.touched.projectLead && formik.errors.projectLead && (
+                  <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75, fontSize: '0.65rem' }}>
+                    {formik.errors.projectLead}
+                  </Typography>
+                )}
               </FormControl>
             </Grid>
 
@@ -410,14 +425,15 @@ const DistributionGroupDetail: React.FC<DistributionGroupDetailProps> = ({
           elevation={0}
           sx={{
             flexGrow: 1,
+            flexShrink: 1,
             display: 'flex',
             flexDirection: 'column',
             border: '1px solid',
             borderColor: 'divider',
-            overflow: 'hidden'
+            minHeight: 0
           }}
         >
-          <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
             <Typography variant="subtitle1">Distribution Group Members</Typography>
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
               <ToggleButtonGroup
@@ -450,7 +466,13 @@ const DistributionGroupDetail: React.FC<DistributionGroupDetailProps> = ({
               </Button>
             </Box>
           </Box>
-          <Box sx={{ height: 580, width: '100%' }}>
+          <Box sx={{ 
+            flexGrow: 1,
+            minHeight: 0,
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
             <DataGrid
               rows={displayedMembers}
               columns={columns}
@@ -470,6 +492,16 @@ const DistributionGroupDetail: React.FC<DistributionGroupDetailProps> = ({
               pageSizeOptions={[10, 20, 50, 100]}
               sx={{
                 border: 'none',
+                flex: 1,
+                minHeight: 0,
+                '& .MuiDataGrid-virtualScroller': {
+                  minHeight: '200px'
+                },
+                '& .MuiDataGrid-footerContainer': {
+                  minHeight: '52px',
+                  borderTop: '1px solid',
+                  borderColor: 'divider'
+                },
                 '& .MuiDataGrid-cell': {
                   borderColor: 'divider',
                   fontSize: '0.75rem'

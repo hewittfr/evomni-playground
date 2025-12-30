@@ -62,7 +62,7 @@ const validationSchema = Yup.object({
     .required('Key is required')
     .matches(/^[a-z0-9-]+$/, 'Key must be lowercase with hyphens only'),
   project: Yup.string().required('Project is required'),
-  projectLead: Yup.string(),
+  projectLead: Yup.string().required('Project Lead is required'),
   description: Yup.string().required('Description is required'),
   status: Yup.string().required('Status is required')
 });
@@ -78,6 +78,7 @@ const EmailDistributionGroups: React.FC = () => {
   const [newMemberDialogOpen, setNewMemberDialogOpen] = useState(false);
   const [allMembers, setAllMembers] = useState<DistributionGroupMember[]>([]);
   const [projectMembers, setProjectMembers] = useState<any[]>([]);
+  const [nameManuallyEdited, setNameManuallyEdited] = useState(false);
 
   const selectedGroup = groups.find(g => g.id === selectedGroupId);
 
@@ -388,10 +389,23 @@ const EmailDistributionGroups: React.FC = () => {
     }
   }, [selectedGroupId]);
 
+  // Auto-generate group name from project and project lead
+  const autoGenerateGroupName = (project: string, projectLeadId: string) => {
+    if (!project || !projectLeadId) return '';
+    
+    const projectLead = allMembers.find(m => m.id === projectLeadId);
+    if (!projectLead) return '';
+    
+    return `${project} - ${projectLead.lastName}`;
+  };
+
   // Auto-generate key from name
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const name = e.target.value;
     formik.setFieldValue('name', name);
+    
+    // Mark that the name has been manually edited
+    setNameManuallyEdited(true);
     
     // Auto-generate key: lowercase, replace spaces with hyphens, remove invalid chars
     const generatedKey = name
@@ -410,6 +424,15 @@ const EmailDistributionGroups: React.FC = () => {
     const project = e.target.value;
     formik.setFieldValue('project', project);
     
+    // Auto-generate name if it hasn't been manually edited
+    if (!nameManuallyEdited && !selectedGroupId) {
+      const projectLeadId = formik.values.projectLead;
+      const autoName = autoGenerateGroupName(project, projectLeadId);
+      if (autoName) {
+        formik.setFieldValue('name', autoName);
+      }
+    }
+    
     // Regenerate key with new project prefix
     const name = formik.values.name;
     const generatedKey = name
@@ -419,6 +442,29 @@ const EmailDistributionGroups: React.FC = () => {
     
     const finalKey = project ? `${project.toLowerCase()}-${generatedKey}` : generatedKey;
     formik.setFieldValue('key', finalKey);
+  };
+
+  // Handle project lead change
+  const handleProjectLeadChange = (e: any) => {
+    const projectLeadId = e.target.value;
+    formik.setFieldValue('projectLead', projectLeadId);
+    
+    // Auto-generate name if it hasn't been manually edited
+    if (!nameManuallyEdited && !selectedGroupId) {
+      const project = formik.values.project;
+      const autoName = autoGenerateGroupName(project, projectLeadId);
+      if (autoName) {
+        formik.setFieldValue('name', autoName);
+        
+        // Also update the key
+        const generatedKey = autoName
+          .toLowerCase()
+          .replace(/\s+/g, '-')
+          .replace(/[^a-z0-9-]/g, '');
+        const finalKey = project ? `${project.toLowerCase()}-${generatedKey}` : generatedKey;
+        formik.setFieldValue('key', finalKey);
+      }
+    }
   };
 
   // Handle member selection changes
@@ -471,8 +517,17 @@ const EmailDistributionGroups: React.FC = () => {
     }
   };
 
+  const handleSelectGroup = (groupId: string | null) => {
+    setSelectedGroupId(groupId);
+    // Existing groups have manually set names, so disable auto-generation
+    if (groupId) {
+      setNameManuallyEdited(true);
+    }
+  };
+
   const handleNewGroup = () => {
     setSelectedGroupId(null);
+    setNameManuallyEdited(false); // Reset auto-name generation for new group
     formik.resetForm({
       values: {
         name: '',
@@ -863,7 +918,7 @@ const EmailDistributionGroups: React.FC = () => {
         <DistributionGroupList
           groups={groups}
           selectedGroupId={selectedGroupId}
-          onSelectGroup={setSelectedGroupId}
+          onSelectGroup={handleSelectGroup}
           onNewGroup={handleNewGroup}
         />
 
@@ -874,6 +929,7 @@ const EmailDistributionGroups: React.FC = () => {
           formik={formik}
           handleNameChange={handleNameChange}
           handleProjectChange={handleProjectChange}
+          handleProjectLeadChange={handleProjectLeadChange}
           handleNewGroup={handleNewGroup}
           handleCopy={handleCopy}
           handleSave={handleSave}
