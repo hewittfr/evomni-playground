@@ -1,6 +1,6 @@
 {
   "name": "evomni-electron",
-  "version": "0.1.0",
+  "version": "1.20251231",
   "main": "electron/main.js",
   "private": true,
   "homepage": "https://hewittfr.github.io/evomni-playground",
